@@ -1,0 +1,128 @@
+{
+  "issueOAuth2Token": {
+    "method": "POST",
+    "path": "/oauth2/token",
+    "required_query": [],
+    "account_required": false
+  },
+  "getOrderbook": {
+    "method": "GET",
+    "path": "/api/v1/orderbook",
+    "required_query": ["symbol"],
+    "account_required": false
+  },
+  "getPrices": {
+    "method": "GET",
+    "path": "/api/v1/prices",
+    "required_query": ["symbols"],
+    "account_required": false
+  },
+  "getTrades": {
+    "method": "GET",
+    "path": "/api/v1/trades",
+    "required_query": ["symbol"],
+    "account_required": false
+  },
+  "getPriceLimit": {
+    "method": "GET",
+    "path": "/api/v1/price-limits",
+    "required_query": ["symbol"],
+    "account_required": false
+  },
+  "getCandles": {
+    "method": "GET",
+    "path": "/api/v1/candles",
+    "required_query": ["symbol", "interval"],
+    "account_required": false
+  },
+  "getStocks": {
+    "method": "GET",
+    "path": "/api/v1/stocks",
+    "required_query": ["symbols"],
+    "account_required": false
+  },
+  "getStockWarnings": {
+    "method": "GET",
+    "path": "/api/v1/stocks/{symbol}/warnings",
+    "required_query": [],
+    "account_required": false
+  },
+  "getExchangeRate": {
+    "method": "GET",
+    "path": "/api/v1/exchange-rate",
+    "required_query": ["baseCurrency", "quoteCurrency"],
+    "account_required": false
+  },
+  "getKrMarketCalendar": {
+    "method": "GET",
+    "path": "/api/v1/market-calendar/KR",
+    "required_query": [],
+    "account_required": false
+  },
+  "getUsMarketCalendar": {
+    "method": "GET",
+    "path": "/api/v1/market-calendar/US",
+    "required_query": [],
+    "account_required": false
+  },
+  "getAccounts": {
+    "method": "GET",
+    "path": "/api/v1/accounts",
+    "required_query": [],
+    "account_required": false
+  },
+  "getHoldings": {
+    "method": "GET",
+    "path": "/api/v1/holdings",
+    "required_query": [],
+    "account_required": true
+  },
+  "getOrders": {
+    "method": "GET",
+    "path": "/api/v1/orders",
+    "required_query": ["status"],
+    "account_required": true
+  },
+  "createOrder": {
+    "method": "POST",
+    "path": "/api/v1/orders",
+    "required_query": [],
+    "account_required": true
+  },
+  "getOrder": {
+    "method": "GET",
+    "path": "/api/v1/orders/{orderId}",
+    "required_query": [],
+    "account_required": true
+  },
+  "modifyOrder": {
+    "method": "POST",
+    "path": "/api/v1/orders/{orderId}/modify",
+    "required_query": [],
+    "account_required": true
+  },
+  "cancelOrder": {
+    "method": "POST",
+    "path": "/api/v1/orders/{orderId}/cancel",
+    "required_query": [],
+    "account_required": true
+  },
+  "getBuyingPower": {
+    "method": "GET",
+    "path": "/api/v1/buying-power",
+    "required_query": ["currency"],
+    "account_required": true
+  },
+  "getSellableQuantity": {
+    "method": "GET",
+    "path": "/api/v1/sellable-quantity",
+    "required_query": ["symbol"],
+    "account_required": true
+  },
+  "getCommissions": {
+    "method": "GET",
+    "path": "/api/v1/commissions",
+    "required_query": [],
+    "account_required": true
+  }
+}

@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Quality and unit tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v8.2.0
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: uv sync --locked --all-extras --group docs
+
+      - name: Check formatting
+        run: uv run --locked ruff format --check .
+
+      - name: Lint
+        run: uv run --locked ruff check .
+
+      - name: Type check
+        run: uv run --locked ty check
+
+      - name: Run unit tests
+        run: uv run --locked pytest -m "not live"
+
+      - name: Build documentation
+        run: uv run --locked --group docs sphinx-build -W -b html docs docs/_build/html
+
+      - name: Build package
+        run: uv build
+
+  live:
+    name: Live API tests
+    runs-on: ubuntu-latest
+    needs: quality
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main')
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v8.2.0
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: uv sync --locked --all-extras
+
+      - name: Validate live-test secrets
+        env:
+          TOSSINVEST_API_KEY: ${{ secrets.TOSSINVEST_API_KEY }}
+          TOSSINVEST_SECRET_KEY: ${{ secrets.TOSSINVEST_SECRET_KEY }}
+        run: |
+          test -n "$TOSSINVEST_API_KEY"
+          test -n "$TOSSINVEST_SECRET_KEY"
+
+      - name: Run live tests
+        env:
+          TOSSINVEST_ENABLE_LIVE_TESTS: "true"
+          TOSSINVEST_API_KEY: ${{ secrets.TOSSINVEST_API_KEY }}
+          TOSSINVEST_SECRET_KEY: ${{ secrets.TOSSINVEST_SECRET_KEY }}
+          TOSSINVEST_ACCOUNT: ${{ secrets.TOSSINVEST_ACCOUNT }}
+          TOSSINVEST_BASE_URL: ${{ vars.TOSSINVEST_BASE_URL || 'https://openapi.tossinvest.com' }}
+          TOSSINVEST_LIVE_SYMBOL: ${{ vars.TOSSINVEST_LIVE_SYMBOL || '005930' }}
+          TOSSINVEST_LIVE_CURRENCY: ${{ vars.TOSSINVEST_LIVE_CURRENCY || 'KRW' }}
+        run: uv run --locked pytest -m live
