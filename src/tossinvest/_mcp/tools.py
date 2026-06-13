@@ -117,11 +117,11 @@ class TossInvestMCPTools:
     def get_holdings(
         self,
         symbol: str | None = None,
-        account: str | int | None = None,
+        account_seq: str | int | None = None,
     ) -> dict[str, object]:
-        """Return holdings for the configured or overridden account."""
+        """Return holdings for the configured or overridden accountSeq."""
         with self.client_factory() as client:
-            return _dump_model(client.assets.get_holdings(symbol=symbol, account=account))
+            return _dump_model(client.assets.get_holdings(symbol=symbol, account=account_seq))
 
     def list_orders(
         self,
@@ -132,9 +132,9 @@ class TossInvestMCPTools:
         to_date: str | None = None,
         cursor: str | None = None,
         limit: int | None = None,
-        account: str | int | None = None,
+        account_seq: str | int | None = None,
     ) -> dict[str, object]:
-        """List orders for the configured or overridden account."""
+        """List orders for the configured or overridden accountSeq."""
         with self.client_factory() as client:
             return _dump_model(
                 client.orders.list_orders(
@@ -144,39 +144,43 @@ class TossInvestMCPTools:
                     to_date=to_date,
                     cursor=cursor,
                     limit=limit,
-                    account=account,
+                    account=account_seq,
                 )
             )
 
-    def get_order(self, order_id: str, account: str | int | None = None) -> dict[str, object]:
+    def get_order(self, order_id: str, account_seq: str | int | None = None) -> dict[str, object]:
         """Return one order by server order identifier."""
         with self.client_factory() as client:
-            return _dump_model(client.orders.get_order(order_id, account=account))
+            return _dump_model(client.orders.get_order(order_id, account=account_seq))
 
     def get_buying_power(
         self,
         *,
         currency: str,
-        account: str | int | None = None,
+        account_seq: str | int | None = None,
     ) -> dict[str, object]:
         """Return cash buying power for the requested currency."""
         with self.client_factory() as client:
-            return _dump_model(client.orders.get_buying_power(currency=currency, account=account))
+            return _dump_model(
+                client.orders.get_buying_power(currency=currency, account=account_seq)
+            )
 
     def get_sellable_quantity(
         self,
         *,
         symbol: str,
-        account: str | int | None = None,
+        account_seq: str | int | None = None,
     ) -> dict[str, object]:
         """Return the sellable quantity for a symbol."""
         with self.client_factory() as client:
-            return _dump_model(client.orders.get_sellable_quantity(symbol=symbol, account=account))
+            return _dump_model(
+                client.orders.get_sellable_quantity(symbol=symbol, account=account_seq)
+            )
 
-    def get_commissions(self, account: str | int | None = None) -> list[dict[str, object]]:
-        """Return commission rules for the configured or overridden account."""
+    def get_commissions(self, account_seq: str | int | None = None) -> list[dict[str, object]]:
+        """Return commission rules for the configured or overridden accountSeq."""
         with self.client_factory() as client:
-            return _dump_model_list(client.orders.get_commissions(account=account))
+            return _dump_model_list(client.orders.get_commissions(account=account_seq))
 
     def create_order(
         self,
@@ -190,9 +194,9 @@ class TossInvestMCPTools:
         time_in_force: str | None = None,
         client_order_id: str | None = None,
         confirm_high_value_order: bool | None = None,
-        account: str | int | None = None,
+        account_seq: str | int | None = None,
     ) -> dict[str, object]:
-        """Submit a live order request for the configured or overridden account."""
+        """Submit a live order request for the configured or overridden accountSeq."""
         request = OrderCreateRequest.model_validate(
             {
                 "clientOrderId": client_order_id,
@@ -207,7 +211,7 @@ class TossInvestMCPTools:
             }
         )
         with self.client_factory() as client:
-            return _dump_model(client.orders.create_order(request, account=account))
+            return _dump_model(client.orders.create_order(request, account=account_seq))
 
     def modify_order(
         self,
@@ -217,9 +221,9 @@ class TossInvestMCPTools:
         quantity: str | None = None,
         price: str | None = None,
         confirm_high_value_order: bool | None = None,
-        account: str | int | None = None,
+        account_seq: str | int | None = None,
     ) -> dict[str, object]:
-        """Modify an existing live order by server order identifier."""
+        """Modify an existing live order by server order identifier and accountSeq."""
         request = OrderModifyRequest.model_validate(
             {
                 "orderType": order_type,
@@ -229,12 +233,14 @@ class TossInvestMCPTools:
             }
         )
         with self.client_factory() as client:
-            return _dump_model(client.orders.modify_order(order_id, request, account=account))
+            return _dump_model(client.orders.modify_order(order_id, request, account=account_seq))
 
-    def cancel_order(self, order_id: str, account: str | int | None = None) -> dict[str, object]:
-        """Cancel an existing live order by server order identifier."""
+    def cancel_order(
+        self, order_id: str, account_seq: str | int | None = None
+    ) -> dict[str, object]:
+        """Cancel an existing live order by server order identifier and accountSeq."""
         with self.client_factory() as client:
-            return _dump_model(client.orders.cancel_order(order_id, account=account))
+            return _dump_model(client.orders.cancel_order(order_id, account=account_seq))
 
 
 def _dump_model(value: object) -> dict[str, object]:

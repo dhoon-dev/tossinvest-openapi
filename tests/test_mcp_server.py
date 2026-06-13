@@ -143,7 +143,7 @@ def test_account_scoped_tools_forward_account_override() -> None:
     client = _FakeClient()
     tools = TossInvestMCPTools(cast(ClientContextFactory, lambda: _FakeClientContext(client)))
 
-    result = tools.get_buying_power(currency="KRW", account="7")
+    result = tools.get_buying_power(currency="KRW", account_seq="7")
 
     assert result == {"currency": "KRW", "cashBuyingPower": "100000"}
     assert client.orders.account == "7"
@@ -162,16 +162,16 @@ def test_live_order_tools_build_sdk_requests_and_forward_account_override() -> N
         time_in_force="DAY",
         client_order_id="client-order-1",
         confirm_high_value_order=True,
-        account="7",
+        account_seq="7",
     )
     modified = tools.modify_order(
         "order-1",
         order_type="LIMIT",
         quantity="1",
         price="71000",
-        account="7",
+        account_seq="7",
     )
-    canceled = tools.cancel_order("order-1", account="7")
+    canceled = tools.cancel_order("order-1", account_seq="7")
 
     assert created == {"orderId": "order-1", "clientOrderId": "client-order-1"}
     assert modified == {"orderId": "order-1"}
@@ -246,6 +246,20 @@ async def test_create_server_registers_read_only_tools_only() -> None:
     assert {"create_order", "modify_order", "cancel_order"}.isdisjoint(tool_names)
 
 
+async def test_account_scoped_tool_schema_uses_account_seq() -> None:
+    pytest.importorskip("mcp.server.fastmcp")
+
+    server = create_server(TossInvestMCPServerConfig("client-id", "client-secret"))
+
+    tools = {tool.name: tool for tool in await server.list_tools()}
+    schema = tools["get_buying_power"].inputSchema
+
+    assert "account_seq" in schema["properties"]
+    assert "account" not in schema["properties"]
+    assert "accountSeq" in schema["properties"]["account_seq"]["description"]
+    assert "accountNo" in schema["properties"]["account_seq"]["description"]
+
+
 async def test_create_server_registers_live_order_tools_when_enabled() -> None:
     pytest.importorskip("mcp.server.fastmcp")
 
@@ -256,3 +270,19 @@ async def test_create_server_registers_live_order_tools_when_enabled() -> None:
     tool_names = {tool.name for tool in await server.list_tools()}
 
     assert {"create_order", "modify_order", "cancel_order"}.issubset(tool_names)
+
+
+async def test_live_order_tool_schema_uses_account_seq_when_enabled() -> None:
+    pytest.importorskip("mcp.server.fastmcp")
+
+    server = create_server(
+        TossInvestMCPServerConfig("client-id", "client-secret", enable_live_orders=True)
+    )
+
+    tools = {tool.name: tool for tool in await server.list_tools()}
+    schema = tools["create_order"].inputSchema
+
+    assert "account_seq" in schema["properties"]
+    assert "account" not in schema["properties"]
+    assert "accountSeq" in schema["properties"]["account_seq"]["description"]
+    assert "accountNo" in schema["properties"]["account_seq"]["description"]
