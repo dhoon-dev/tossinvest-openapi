@@ -37,6 +37,12 @@ dev = [
   "ruff>=0.12",
   "ty>=0.0.1a15",
 ]
+mcp = [
+  "mcp>=1.12,<2",
+]
+
+[project.scripts]
+tossinvest-mcp = "tossinvest._mcp.server:main"
 
 [dependency-groups]
 dev = [
@@ -118,6 +124,8 @@ ignore = [
 "docs/conf.py" = ["A001", "INP001"]
 # The OAuth token endpoint path is a public route, not a hardcoded secret.
 "src/tossinvest/auth.py" = ["S105", "S107"]
+# The optional MCP entrypoint imports MCP lazily so base SDK imports do not require the extra.
+"src/tossinvest/_mcp/server.py" = ["PLC0415"]
 # Tests use pytest asserts, mocked secrets, flexible fixtures, and private-state checks.
 "tests/**/*.py" = ["ANN401", "D", "S101", "S105", "S106", "S107", "SLF001"]
 

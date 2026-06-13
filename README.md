@@ -23,6 +23,54 @@ constructing a client.
 If your application uses environment variables, read them in your application code and pass the
 values to `TossInvestClient` or `AsyncTossInvestClient`.
 
+## MCP Server
+
+The optional Model Context Protocol server exposes read-only SDK operations for
+MCP hosts. It is not installed with the base SDK dependencies.
+
+Run it with `uvx --from`:
+
+```bash
+uvx --from "tossinvest-openapi[mcp]" tossinvest-mcp \
+  --client-id "$TOSSINVEST_API_KEY" \
+  --client-secret "$TOSSINVEST_SECRET_KEY" \
+  --account "$TOSSINVEST_ACCOUNT"
+```
+
+The server does not read `.env` files or discover credentials automatically.
+Pass credentials through your MCP host configuration as command arguments. The
+default server exposes read-only tools only.
+
+To register live order creation, modification, and cancellation tools, pass the
+separate `--enable-live-orders` opt-in flag:
+
+```bash
+uvx --from "tossinvest-openapi[mcp]" tossinvest-mcp \
+  --client-id "$TOSSINVEST_API_KEY" \
+  --client-secret "$TOSSINVEST_SECRET_KEY" \
+  --account "$TOSSINVEST_ACCOUNT" \
+  --enable-live-orders
+```
+
+Example MCP configuration:
+
+```json
+{
+  "command": "uvx",
+  "args": [
+    "--from",
+    "tossinvest-openapi[mcp]",
+    "tossinvest-mcp",
+    "--client-id",
+    "your-client-id",
+    "--client-secret",
+    "your-client-secret",
+    "--account",
+    "1"
+  ]
+}
+```
+
 ## Sync Quickstart
 
 ```python
