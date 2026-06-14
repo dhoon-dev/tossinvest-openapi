@@ -9,6 +9,11 @@ from typing import TYPE_CHECKING
 from pydantic import Field
 
 from tossinvest._mcp.config import TossInvestMCPServerConfig
+from tossinvest._mcp.credentials import (
+    DEFAULT_CREDENTIAL_HELPER_TIMEOUT,
+    CredentialHelperError,
+    resolve_credential,
+)
 from tossinvest._mcp.tools import ClientContextFactory, TossInvestMCPTools
 from tossinvest.config import (
     DEFAULT_BASE_URL,
@@ -273,15 +278,35 @@ def _register_live_order_tools(server: FastMCP, tools: TossInvestMCPTools) -> No
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     """Parse command-line arguments for the MCP server."""
     parser = argparse.ArgumentParser(description="Run the TossInvest MCP server.")
-    parser.add_argument(
+    client_id_group = parser.add_mutually_exclusive_group(required=True)
+    client_id_group.add_argument(
         "--client-id",
-        required=True,
         help="TossInvest OpenAPI OAuth client ID.",
     )
-    parser.add_argument(
+    client_id_group.add_argument(
+        "--client-id-command",
+        help=(
+            "Command that prints the TossInvest OpenAPI OAuth client ID to stdout. "
+            "The command is parsed with shlex and is not run through a shell."
+        ),
+    )
+    client_secret_group = parser.add_mutually_exclusive_group(required=True)
+    client_secret_group.add_argument(
         "--client-secret",
-        required=True,
         help="TossInvest OpenAPI OAuth client secret.",
+    )
+    client_secret_group.add_argument(
+        "--client-secret-command",
+        help=(
+            "Command that prints the TossInvest OpenAPI OAuth client secret to stdout. "
+            "The command is parsed with shlex and is not run through a shell."
+        ),
+    )
+    parser.add_argument(
+        "--credential-helper-timeout",
+        default=DEFAULT_CREDENTIAL_HELPER_TIMEOUT,
+        type=float,
+        help="Credential helper timeout in seconds.",
     )
     parser.add_argument(
         "--account",
@@ -319,9 +344,21 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
 
 def config_from_args(args: argparse.Namespace) -> TossInvestMCPServerConfig:
     """Build MCP server configuration from parsed arguments."""
+    client_id = resolve_credential(
+        args.client_id,
+        args.client_id_command,
+        label="client ID",
+        timeout=args.credential_helper_timeout,
+    )
+    client_secret = resolve_credential(
+        args.client_secret,
+        args.client_secret_command,
+        label="client secret",
+        timeout=args.credential_helper_timeout,
+    )
     return TossInvestMCPServerConfig(
-        client_id=args.client_id,
-        client_secret=args.client_secret,
+        client_id=client_id,
+        client_secret=client_secret,
         account=args.account,
         base_url=args.base_url,
         timeout=args.timeout,
@@ -333,5 +370,8 @@ def config_from_args(args: argparse.Namespace) -> TossInvestMCPServerConfig:
 
 def main(argv: Sequence[str] | None = None) -> None:
     """Run the TossInvest MCP server over stdio."""
-    config = config_from_args(parse_args(argv))
+    try:
+        config = config_from_args(parse_args(argv))
+    except CredentialHelperError as exc:
+        raise SystemExit(str(exc)) from exc
     create_server(config).run(transport="stdio")

@@ -124,6 +124,8 @@ ignore = [
 "docs/conf.py" = ["A001", "INP001"]
 # The OAuth token endpoint path is a public route, not a hardcoded secret.
 "src/tossinvest/auth.py" = ["S105", "S107"]
+# MCP credential helpers intentionally execute user-configured local commands without a shell.
+"src/tossinvest/_mcp/credentials.py" = ["S404", "S603", "S607"]
 # The optional MCP entrypoint imports MCP lazily so base SDK imports do not require the extra.
 "src/tossinvest/_mcp/server.py" = ["PLC0415"]
 # Tests use pytest asserts, mocked secrets, flexible fixtures, and private-state checks.

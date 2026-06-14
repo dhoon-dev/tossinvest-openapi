@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import shlex
+import sys
 from collections.abc import Sequence
 from contextlib import AbstractContextManager
 from types import TracebackType
@@ -8,6 +10,7 @@ from typing import cast
 import pytest
 
 from tossinvest._mcp.config import TossInvestMCPServerConfig
+from tossinvest._mcp.credentials import CredentialHelperError
 from tossinvest._mcp.server import config_from_args, create_server, parse_args
 from tossinvest._mcp.tools import ClientContextFactory, TossInvestMCPTools
 from tossinvest.models import (
@@ -19,6 +22,10 @@ from tossinvest.models import (
     OrderResponse,
     PriceResponse,
 )
+
+
+def _python_command(source: str) -> str:
+    return f"{shlex.quote(sys.executable)} -c {shlex.quote(source)}"
 
 
 class _Accounts:
@@ -231,6 +238,43 @@ def test_config_from_args_preserves_explicit_credentials() -> None:
         user_agent="custom-agent",
         enable_live_orders=True,
     )
+
+
+def test_config_from_args_resolves_credentials_from_helpers() -> None:
+    args = parse_args(
+        [
+            "--client-id-command",
+            _python_command("print('helper-client-id')"),
+            "--client-secret-command",
+            _python_command("print('helper-client-secret')"),
+            "--account",
+            "1",
+        ]
+    )
+
+    config = config_from_args(args)
+
+    assert config.client_id == "helper-client-id"
+    assert config.client_secret == "helper-client-secret"
+    assert config.account == "1"
+
+
+def test_credential_helper_error_does_not_include_output() -> None:
+    args = parse_args(
+        [
+            "--client-id-command",
+            _python_command("print('helper-client-id')"),
+            "--client-secret-command",
+            _python_command("print('leaked-secret'); raise SystemExit(2)"),
+        ]
+    )
+
+    with pytest.raises(CredentialHelperError) as exc_info:
+        config_from_args(args)
+
+    message = str(exc_info.value)
+    assert "client secret" in message
+    assert "leaked-secret" not in message
 
 
 async def test_create_server_registers_read_only_tools_only() -> None:

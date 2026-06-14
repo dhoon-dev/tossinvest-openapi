@@ -41,6 +41,43 @@ The server does not read `.env` files or discover credentials automatically.
 Pass credentials through your MCP host configuration as command arguments. The
 default server exposes read-only tools only.
 
+For launchers, prefer credential helper commands so API key and secret values
+are not stored in config files, environment variables, or process arguments.
+Helper command lines are parsed with `shlex` and run without a shell. The
+trimmed stdout value becomes the credential.
+
+Register credentials in macOS Keychain:
+
+```bash
+/usr/bin/security add-generic-password -U -a "$USER" -s tossinvest-api-key -w
+/usr/bin/security add-generic-password -U -a "$USER" -s tossinvest-secret-key -w
+```
+
+macOS Keychain example:
+
+```bash
+uvx --from "tossinvest-openapi[mcp]" tossinvest-mcp \
+  --client-id-command "/usr/bin/security find-generic-password -a ${USER} -s tossinvest-api-key -w" \
+  --client-secret-command "/usr/bin/security find-generic-password -a ${USER} -s tossinvest-secret-key -w" \
+  --account "$TOSSINVEST_ACCOUNT"
+```
+
+Register credentials in Ubuntu `pass`:
+
+```bash
+pass insert tossinvest/api-key
+pass insert tossinvest/secret-key
+```
+
+Ubuntu `pass` example, assuming each entry contains only the credential value:
+
+```bash
+uvx --from "tossinvest-openapi[mcp]" tossinvest-mcp \
+  --client-id-command "/usr/bin/pass show tossinvest/api-key" \
+  --client-secret-command "/usr/bin/pass show tossinvest/secret-key" \
+  --account "$TOSSINVEST_ACCOUNT"
+```
+
 To register live order creation, modification, and cancellation tools, pass the
 separate `--enable-live-orders` opt-in flag:
 
