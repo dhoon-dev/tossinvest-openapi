@@ -26,9 +26,14 @@ if TYPE_CHECKING:
     from mcp.server.fastmcp import FastMCP
 
 ACCOUNT_SEQ_DESCRIPTION = (
-    "Optional accountSeq from list_accounts or find_account_by_number. Do not pass accountNo."
+    "Optional accountSeq override. Omit when the server was started with --account or "
+    "--account-seq. Use list_accounts or find_account_by_number only when no default "
+    "account is configured or when selecting a different account; do not pass accountNo."
 )
-ACCOUNT_NO_DESCRIPTION = "Official accountNo from list_accounts."
+ACCOUNT_NO_DESCRIPTION = (
+    "Official accountNo from list_accounts. Resolving accountNo calls the ACCOUNT-rate-limited "
+    "accounts endpoint."
+)
 
 
 def create_server(
@@ -39,7 +44,12 @@ def create_server(
     """Create a read-only TossInvest MCP server."""
     from mcp.server.fastmcp import FastMCP
 
-    tools = TossInvestMCPTools(client_factory or config.create_client)
+    tools = TossInvestMCPTools(
+        client_factory or config.create_client,
+        account_resolver=config.account_seq_for_tool,
+        account_list_cache_getter=config.cached_account_list,
+        account_list_observer=config.cache_account_list,
+    )
     server = FastMCP("TossInvest OpenAPI")
 
     _register_account_tools(server, tools)
@@ -57,7 +67,11 @@ def _register_account_tools(server: FastMCP, tools: TossInvestMCPTools) -> None:
 
     @server.tool()
     def list_accounts() -> list[dict[str, object]]:
-        """List accounts. Use accountSeq as account_seq for account-scoped tools, not accountNo."""
+        """List accounts only when account discovery is needed.
+
+        Account-scoped tools use the configured default accountSeq when account_seq is omitted.
+        Use accountSeq as account_seq for overrides, not accountNo.
+        """
         return tools.list_accounts()
 
     @server.tool()
@@ -169,7 +183,7 @@ def _register_account_scoped_tools(server: FastMCP, tools: TossInvestMCPTools) -
         symbol: str | None = None,
         account_seq: str | None = Field(default=None, description=ACCOUNT_SEQ_DESCRIPTION),
     ) -> dict[str, object]:
-        """Return holdings for the configured accountSeq or overridden account_seq."""
+        """Return holdings using the configured default accountSeq or an account_seq override."""
         return tools.get_holdings(symbol=symbol, account_seq=account_seq)
 
     @server.tool()
@@ -182,7 +196,7 @@ def _register_account_scoped_tools(server: FastMCP, tools: TossInvestMCPTools) -
         limit: int | None = None,
         account_seq: str | None = Field(default=None, description=ACCOUNT_SEQ_DESCRIPTION),
     ) -> dict[str, object]:
-        """List orders for the configured accountSeq or overridden account_seq."""
+        """List orders using the configured default accountSeq or an account_seq override."""
         return tools.list_orders(
             status=status,
             symbol=symbol,
@@ -198,7 +212,7 @@ def _register_account_scoped_tools(server: FastMCP, tools: TossInvestMCPTools) -
         order_id: str,
         account_seq: str | None = Field(default=None, description=ACCOUNT_SEQ_DESCRIPTION),
     ) -> dict[str, object]:
-        """Return one order by server order identifier."""
+        """Return one order using the configured default accountSeq or an account_seq override."""
         return tools.get_order(order_id, account_seq=account_seq)
 
     @server.tool()
@@ -206,7 +220,7 @@ def _register_account_scoped_tools(server: FastMCP, tools: TossInvestMCPTools) -
         currency: str,
         account_seq: str | None = Field(default=None, description=ACCOUNT_SEQ_DESCRIPTION),
     ) -> dict[str, object]:
-        """Return cash buying power for the requested currency and accountSeq."""
+        """Return cash buying power using the configured default accountSeq or an override."""
         return tools.get_buying_power(currency=currency, account_seq=account_seq)
 
     @server.tool()
@@ -214,14 +228,14 @@ def _register_account_scoped_tools(server: FastMCP, tools: TossInvestMCPTools) -
         symbol: str,
         account_seq: str | None = Field(default=None, description=ACCOUNT_SEQ_DESCRIPTION),
     ) -> dict[str, object]:
-        """Return the sellable quantity for a symbol and accountSeq."""
+        """Return sellable quantity using the configured default accountSeq or an override."""
         return tools.get_sellable_quantity(symbol=symbol, account_seq=account_seq)
 
     @server.tool()
     def get_commissions(
         account_seq: str | None = Field(default=None, description=ACCOUNT_SEQ_DESCRIPTION),
     ) -> list[dict[str, object]]:
-        """Return commission rules for the configured accountSeq or overridden account_seq."""
+        """Return commissions using the configured default accountSeq or an account_seq override."""
         return tools.get_commissions(account_seq=account_seq)
 
 
@@ -242,7 +256,7 @@ def _register_live_order_tools(server: FastMCP, tools: TossInvestMCPTools) -> No
         confirm_high_value_order: bool | None = None,
         account_seq: str | None = Field(default=None, description=ACCOUNT_SEQ_DESCRIPTION),
     ) -> dict[str, object]:
-        """Submit a live order using the configured accountSeq or overridden account_seq."""
+        """Submit a live order using the configured default accountSeq or an override."""
         return tools.create_order(
             symbol=symbol,
             side=side,
@@ -266,7 +280,7 @@ def _register_live_order_tools(server: FastMCP, tools: TossInvestMCPTools) -> No
         confirm_high_value_order: bool | None = None,
         account_seq: str | None = Field(default=None, description=ACCOUNT_SEQ_DESCRIPTION),
     ) -> dict[str, object]:
-        """Modify an existing live order using accountSeq or overridden account_seq."""
+        """Modify a live order using the configured default accountSeq or an override."""
         return tools.modify_order(
             order_id,
             order_type=order_type,
@@ -281,7 +295,7 @@ def _register_live_order_tools(server: FastMCP, tools: TossInvestMCPTools) -> No
         order_id: str,
         account_seq: str | None = Field(default=None, description=ACCOUNT_SEQ_DESCRIPTION),
     ) -> dict[str, object]:
-        """Cancel an existing live order using accountSeq or overridden account_seq."""
+        """Cancel a live order using the configured default accountSeq or an override."""
         return tools.cancel_order(order_id, account_seq=account_seq)
 
 

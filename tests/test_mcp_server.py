@@ -267,7 +267,18 @@ def test_config_from_args_preserves_account_seq_override() -> None:
     assert config.account_number is None
 
 
-def test_config_create_client_resolves_account_number_once(httpx_mock: HTTPXMock) -> None:
+def test_config_create_client_does_not_resolve_account_number() -> None:
+    config = TossInvestMCPServerConfig(
+        client_id="client-id",
+        client_secret="client-secret",
+        account_number="12345678901",
+    )
+
+    with config.create_client() as client:
+        assert client.config.default_account is None
+
+
+def test_config_resolves_account_number_once(httpx_mock: HTTPXMock) -> None:
     add_token_response(httpx_mock)
     add_api_response(
         httpx_mock,
@@ -281,13 +292,247 @@ def test_config_create_client_resolves_account_number_once(httpx_mock: HTTPXMock
         account_number="12345678901",
     )
 
-    with config.create_client() as client:
-        assert client.config.default_account == 1
-    with config.create_client() as client:
-        assert client.config.default_account == 1
+    assert config.account_seq_for_tool() == 1
+    assert config.account_seq_for_tool() == 1
 
     requests = httpx_mock.get_requests(method="GET")
     assert len(requests) == 1
+
+
+def test_config_uses_cached_account_before_ttl(
+    httpx_mock: HTTPXMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    current_time = 100.0
+    monkeypatch.setattr("tossinvest._mcp.config.time.monotonic", lambda: current_time)
+    add_token_response(httpx_mock)
+    add_api_response(
+        httpx_mock,
+        method="GET",
+        url="https://openapi.tossinvest.com/api/v1/accounts",
+        result=[{"accountNo": "12345678901", "accountSeq": 1, "accountType": "BROKERAGE"}],
+    )
+    config = TossInvestMCPServerConfig(
+        client_id="client-id",
+        client_secret="client-secret",
+        account_number="12345678901",
+        account_cache_ttl=60.0,
+    )
+
+    assert config.account_seq_for_tool() == 1
+    current_time = 159.0
+    assert config.account_seq_for_tool() == 1
+
+    account_requests = [
+        request
+        for request in httpx_mock.get_requests(method="GET")
+        if request.url.path == "/api/v1/accounts"
+    ]
+    assert len(account_requests) == 1
+
+
+def test_config_refreshes_cached_account_after_ttl(
+    httpx_mock: HTTPXMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    current_time = 100.0
+    monkeypatch.setattr("tossinvest._mcp.config.time.monotonic", lambda: current_time)
+    add_token_response(httpx_mock, token="token-1")
+    add_api_response(
+        httpx_mock,
+        method="GET",
+        url="https://openapi.tossinvest.com/api/v1/accounts",
+        result=[{"accountNo": "12345678901", "accountSeq": 1, "accountType": "BROKERAGE"}],
+    )
+    add_token_response(httpx_mock, token="token-2")
+    add_api_response(
+        httpx_mock,
+        method="GET",
+        url="https://openapi.tossinvest.com/api/v1/accounts",
+        result=[{"accountNo": "12345678901", "accountSeq": 2, "accountType": "BROKERAGE"}],
+    )
+    config = TossInvestMCPServerConfig(
+        client_id="client-id",
+        client_secret="client-secret",
+        account_number="12345678901",
+        account_cache_ttl=60.0,
+    )
+
+    assert config.account_seq_for_tool() == 1
+    current_time = 160.0
+    assert config.account_seq_for_tool() == 2
+
+    account_requests = [
+        request
+        for request in httpx_mock.get_requests(method="GET")
+        if request.url.path == "/api/v1/accounts"
+    ]
+    assert len(account_requests) == 2
+
+
+def test_tools_cache_account_resolution_from_list_accounts(httpx_mock: HTTPXMock) -> None:
+    add_token_response(httpx_mock, token="token-1")
+    add_api_response(
+        httpx_mock,
+        method="GET",
+        url="https://openapi.tossinvest.com/api/v1/accounts",
+        result=[{"accountNo": "12345678901", "accountSeq": 1, "accountType": "BROKERAGE"}],
+    )
+    add_token_response(httpx_mock, token="token-2")
+    add_api_response(
+        httpx_mock,
+        method="GET",
+        url="https://openapi.tossinvest.com/api/v1/buying-power?currency=USD",
+        result={"currency": "USD", "cashBuyingPower": "100000"},
+    )
+    config = TossInvestMCPServerConfig(
+        client_id="client-id",
+        client_secret="client-secret",
+        account_number="12345678901",
+    )
+    tools = TossInvestMCPTools(
+        config.create_client,
+        account_resolver=config.account_seq_for_tool,
+        account_list_cache_getter=config.cached_account_list,
+        account_list_observer=config.cache_account_list,
+    )
+
+    accounts = tools.list_accounts()
+    buying_power = tools.get_buying_power(currency="USD")
+
+    assert accounts == [{"accountNo": "12345678901", "accountSeq": 1, "accountType": "BROKERAGE"}]
+    assert buying_power == {"currency": "USD", "cashBuyingPower": "100000"}
+    account_requests = [
+        request
+        for request in httpx_mock.get_requests(method="GET")
+        if request.url.path == "/api/v1/accounts"
+    ]
+    assert len(account_requests) == 1
+
+
+def test_account_resolution_populates_list_accounts_cache(
+    httpx_mock: HTTPXMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    current_time = 100.0
+    monkeypatch.setattr("tossinvest._mcp.config.time.monotonic", lambda: current_time)
+    add_token_response(httpx_mock, token="token-1")
+    add_api_response(
+        httpx_mock,
+        method="GET",
+        url="https://openapi.tossinvest.com/api/v1/accounts",
+        result=[{"accountNo": "12345678901", "accountSeq": 1, "accountType": "BROKERAGE"}],
+    )
+    add_token_response(httpx_mock, token="token-2")
+    add_api_response(
+        httpx_mock,
+        method="GET",
+        url="https://openapi.tossinvest.com/api/v1/buying-power?currency=USD",
+        result={"currency": "USD", "cashBuyingPower": "100000"},
+    )
+    config = TossInvestMCPServerConfig(
+        client_id="client-id",
+        client_secret="client-secret",
+        account_number="12345678901",
+    )
+    tools = TossInvestMCPTools(
+        config.create_client,
+        account_resolver=config.account_seq_for_tool,
+        account_list_cache_getter=config.cached_account_list,
+        account_list_observer=config.cache_account_list,
+    )
+
+    buying_power = tools.get_buying_power(currency="USD")
+    current_time = 100.5
+    accounts = tools.list_accounts()
+
+    assert buying_power == {"currency": "USD", "cashBuyingPower": "100000"}
+    assert accounts == [{"accountNo": "12345678901", "accountSeq": 1, "accountType": "BROKERAGE"}]
+    account_requests = [
+        request
+        for request in httpx_mock.get_requests(method="GET")
+        if request.url.path == "/api/v1/accounts"
+    ]
+    assert len(account_requests) == 1
+
+
+def test_tools_return_cached_accounts_before_rate_limit_window(
+    httpx_mock: HTTPXMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    current_time = 100.0
+    monkeypatch.setattr("tossinvest._mcp.config.time.monotonic", lambda: current_time)
+    add_token_response(httpx_mock)
+    add_api_response(
+        httpx_mock,
+        method="GET",
+        url="https://openapi.tossinvest.com/api/v1/accounts",
+        result=[{"accountNo": "12345678901", "accountSeq": 1, "accountType": "BROKERAGE"}],
+    )
+    config = TossInvestMCPServerConfig(
+        client_id="client-id",
+        client_secret="client-secret",
+        account_number="12345678901",
+    )
+    tools = TossInvestMCPTools(
+        config.create_client,
+        account_resolver=config.account_seq_for_tool,
+        account_list_cache_getter=config.cached_account_list,
+        account_list_observer=config.cache_account_list,
+    )
+
+    first_accounts = tools.list_accounts()
+    current_time = 100.5
+    cached_accounts = tools.list_accounts()
+
+    assert first_accounts == cached_accounts
+    account_requests = [
+        request
+        for request in httpx_mock.get_requests(method="GET")
+        if request.url.path == "/api/v1/accounts"
+    ]
+    assert len(account_requests) == 1
+
+
+def test_tools_refresh_cached_accounts_after_rate_limit_window(
+    httpx_mock: HTTPXMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    current_time = 100.0
+    monkeypatch.setattr("tossinvest._mcp.config.time.monotonic", lambda: current_time)
+    add_token_response(httpx_mock, token="token-1")
+    add_api_response(
+        httpx_mock,
+        method="GET",
+        url="https://openapi.tossinvest.com/api/v1/accounts",
+        result=[{"accountNo": "12345678901", "accountSeq": 1, "accountType": "BROKERAGE"}],
+    )
+    add_token_response(httpx_mock, token="token-2")
+    add_api_response(
+        httpx_mock,
+        method="GET",
+        url="https://openapi.tossinvest.com/api/v1/accounts",
+        result=[{"accountNo": "12345678901", "accountSeq": 2, "accountType": "BROKERAGE"}],
+    )
+    config = TossInvestMCPServerConfig(
+        client_id="client-id",
+        client_secret="client-secret",
+        account_number="12345678901",
+    )
+    tools = TossInvestMCPTools(
+        config.create_client,
+        account_resolver=config.account_seq_for_tool,
+        account_list_cache_getter=config.cached_account_list,
+        account_list_observer=config.cache_account_list,
+    )
+
+    first_accounts = tools.list_accounts()
+    current_time = 101.0
+    refreshed_accounts = tools.list_accounts()
+
+    assert first_accounts[0]["accountSeq"] == 1
+    assert refreshed_accounts[0]["accountSeq"] == 2
+    account_requests = [
+        request
+        for request in httpx_mock.get_requests(method="GET")
+        if request.url.path == "/api/v1/accounts"
+    ]
+    assert len(account_requests) == 2
 
 
 def test_config_from_args_resolves_credentials_from_helpers() -> None:

@@ -19,6 +19,8 @@ from .errors import (
 
 SAFE_RETRY_METHODS = {"GET", "HEAD", "OPTIONS"}
 RETRYABLE_STATUSES = {429, 500, 502, 503, 504}
+DEFAULT_RETRY_DELAY = 1.0
+MAX_RETRY_DELAY = 30.0
 
 
 class SyncHTTPClient:
@@ -339,10 +341,17 @@ async def _async_sleep_before_retry(response: httpx.Response, attempt: int) -> N
 
 
 def _retry_delay(response: httpx.Response, attempt: int) -> float:
-    retry_after = response.headers.get("retry-after")
-    if retry_after is not None:
-        try:
-            return min(float(retry_after), 0.1)
-        except ValueError:
-            return 0.1
-    return min(0.1, 0.05 * (2**attempt))
+    for header in ("retry-after", "x-ratelimit-reset"):
+        delay = _retry_header_delay(response.headers.get(header))
+        if delay is not None:
+            return delay
+    return min(MAX_RETRY_DELAY, DEFAULT_RETRY_DELAY * (2**attempt))
+
+
+def _retry_header_delay(value: str | None) -> float | None:
+    if value is None:
+        return None
+    try:
+        return max(0.0, float(value))
+    except ValueError:
+        return None

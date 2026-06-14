@@ -27,8 +27,13 @@ The server does not read ``.env`` files or discover credentials automatically.
 Pass credentials through your MCP host configuration as command arguments. The
 default server exposes read-only tools only.
 For the MCP server, ``--account`` accepts the official account number
-(``accountNo``) and resolves it to ``accountSeq`` internally. Use
-``--account-seq`` only when you already know the sequence value.
+(``accountNo``) and resolves it to ``accountSeq`` internally when an
+account-scoped tool first needs the account header. The resolved value is
+cached for the server process. Use ``--account-seq`` only when you already know
+the sequence value. The accounts endpoint is in the ``ACCOUNT`` rate-limit
+group, so ``list_accounts`` results and accountNo resolution are cached for 1
+second by default, matching the documented one-request-per-second limit. Avoid
+calling ``list_accounts`` just to use a configured default account.
 
 For launchers, prefer credential helper commands so API key and secret values
 are not stored in config files, environment variables, or process arguments.
@@ -101,13 +106,14 @@ shell expansion inside this list.
    [mcp_servers.tossinvest.tools.cancel_order]
    approval_mode = "prompt"
 
-Replace the ``--account`` value with your account number (``accountNo``), or
-remove the option and pass ``account_seq`` to account-scoped tools. For Ubuntu
-``pass``, use the helper command values shown in the Ubuntu example above. A
-separate launcher is only needed if you want shell behavior such as expanding
-environment variables before starting the MCP server. In Codex, start a new
-session after editing the config and use ``/mcp`` to check that the server is
-connected.
+Replace the ``--account`` value with your account number (``accountNo``). If
+you already know the ``accountSeq``, you can use ``--account-seq`` instead.
+You can also remove the option and pass ``account_seq`` to each account-scoped
+tool call. For Ubuntu ``pass``, use the helper command values shown in the
+Ubuntu example above. A separate launcher is only needed if you want shell
+behavior such as expanding environment variables before starting the MCP
+server. In Codex, start a new session after editing the config and use
+``/mcp`` to check that the server is connected.
 
 To register live order creation, modification, and cancellation tools, pass the
 separate ``--enable-live-orders`` opt-in flag:

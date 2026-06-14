@@ -86,6 +86,39 @@ def test_rate_limit_exception_mapping(httpx_mock: HTTPXMock) -> None:
     assert exc_info.value.api_code == "rate-limit-exceeded"
 
 
+def test_rate_limit_retry_uses_retry_after(
+    httpx_mock: HTTPXMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    delays: list[float] = []
+    add_token_response(httpx_mock)
+    httpx_mock.add_response(
+        method="GET",
+        url="https://openapi.tossinvest.com/api/v1/prices?symbols=005930",
+        status_code=429,
+        json={
+            "error": {
+                "requestId": "request-2",
+                "code": "rate-limit-exceeded",
+                "message": "Rate limited",
+            }
+        },
+        headers={"Retry-After": "1.25"},
+    )
+    add_api_response(
+        httpx_mock,
+        method="GET",
+        url="https://openapi.tossinvest.com/api/v1/prices?symbols=005930",
+        result=[price_payload()],
+    )
+    monkeypatch.setattr("tossinvest._http.time.sleep", delays.append)
+    client = make_client(max_retries=1)
+
+    price = client.market_data.get_price("005930")
+
+    assert price.symbol == "005930"
+    assert delays == [1.25]
+
+
 def test_token_failure_raises_auth_error_without_secret(httpx_mock: HTTPXMock) -> None:
     httpx_mock.add_response(
         method="POST",

@@ -11,9 +11,12 @@ from pydantic import BaseModel
 
 from tossinvest._mcp.accounts import find_account_by_number as _find_account_by_number
 from tossinvest.client import TossInvestClient
-from tossinvest.models import OrderCreateRequest, OrderModifyRequest
+from tossinvest.models import Account, OrderCreateRequest, OrderModifyRequest
 
 type ClientContextFactory = Callable[[], AbstractContextManager[TossInvestClient]]
+type AccountResolver = Callable[[str | int | None], str | int | None]
+type AccountListCacheGetter = Callable[[], list[Account] | None]
+type AccountListObserver = Callable[[list[Account]], None]
 
 
 @dataclass(frozen=True, slots=True)
@@ -21,16 +24,29 @@ class TossInvestMCPTools:
     """Read-only TossInvest operations exposed through MCP."""
 
     client_factory: ClientContextFactory
+    account_resolver: AccountResolver | None = None
+    account_list_cache_getter: AccountListCacheGetter | None = None
+    account_list_observer: AccountListObserver | None = None
 
     def list_accounts(self) -> list[dict[str, object]]:
         """List accounts available to the authenticated OAuth client."""
+        cached_accounts = self._cached_accounts()
+        if cached_accounts is not None:
+            return _dump_model_list(cached_accounts)
         with self.client_factory() as client:
-            return _dump_model_list(client.accounts.list_accounts())
+            accounts = client.accounts.list_accounts()
+            self._observe_accounts(accounts)
+            return _dump_model_list(accounts)
 
     def find_account_by_number(self, account_no: str) -> dict[str, object]:
         """Return the account matching an official accountNo."""
+        cached_accounts = self._cached_accounts()
+        if cached_accounts is not None:
+            return _dump_model(_find_account_by_number(cached_accounts, account_no))
         with self.client_factory() as client:
-            account = _find_account_by_number(client.accounts.list_accounts(), account_no)
+            accounts = client.accounts.list_accounts()
+            self._observe_accounts(accounts)
+            account = _find_account_by_number(accounts, account_no)
             return _dump_model(account)
 
     def get_stock(self, symbol: str) -> dict[str, object]:
@@ -127,8 +143,9 @@ class TossInvestMCPTools:
         account_seq: str | int | None = None,
     ) -> dict[str, object]:
         """Return holdings for the configured or overridden accountSeq."""
+        account = self._account_for_tool(account_seq)
         with self.client_factory() as client:
-            return _dump_model(client.assets.get_holdings(symbol=symbol, account=account_seq))
+            return _dump_model(client.assets.get_holdings(symbol=symbol, account=account))
 
     def list_orders(
         self,
@@ -142,6 +159,7 @@ class TossInvestMCPTools:
         account_seq: str | int | None = None,
     ) -> dict[str, object]:
         """List orders for the configured or overridden accountSeq."""
+        account = self._account_for_tool(account_seq)
         with self.client_factory() as client:
             return _dump_model(
                 client.orders.list_orders(
@@ -151,14 +169,15 @@ class TossInvestMCPTools:
                     to_date=to_date,
                     cursor=cursor,
                     limit=limit,
-                    account=account_seq,
+                    account=account,
                 )
             )
 
     def get_order(self, order_id: str, account_seq: str | int | None = None) -> dict[str, object]:
         """Return one order by server order identifier."""
+        account = self._account_for_tool(account_seq)
         with self.client_factory() as client:
-            return _dump_model(client.orders.get_order(order_id, account=account_seq))
+            return _dump_model(client.orders.get_order(order_id, account=account))
 
     def get_buying_power(
         self,
@@ -167,10 +186,9 @@ class TossInvestMCPTools:
         account_seq: str | int | None = None,
     ) -> dict[str, object]:
         """Return cash buying power for the requested currency."""
+        account = self._account_for_tool(account_seq)
         with self.client_factory() as client:
-            return _dump_model(
-                client.orders.get_buying_power(currency=currency, account=account_seq)
-            )
+            return _dump_model(client.orders.get_buying_power(currency=currency, account=account))
 
     def get_sellable_quantity(
         self,
@@ -179,15 +197,15 @@ class TossInvestMCPTools:
         account_seq: str | int | None = None,
     ) -> dict[str, object]:
         """Return the sellable quantity for a symbol."""
+        account = self._account_for_tool(account_seq)
         with self.client_factory() as client:
-            return _dump_model(
-                client.orders.get_sellable_quantity(symbol=symbol, account=account_seq)
-            )
+            return _dump_model(client.orders.get_sellable_quantity(symbol=symbol, account=account))
 
     def get_commissions(self, account_seq: str | int | None = None) -> list[dict[str, object]]:
         """Return commission rules for the configured or overridden accountSeq."""
+        account = self._account_for_tool(account_seq)
         with self.client_factory() as client:
-            return _dump_model_list(client.orders.get_commissions(account=account_seq))
+            return _dump_model_list(client.orders.get_commissions(account=account))
 
     def create_order(
         self,
@@ -204,6 +222,7 @@ class TossInvestMCPTools:
         account_seq: str | int | None = None,
     ) -> dict[str, object]:
         """Submit a live order request for the configured or overridden accountSeq."""
+        account = self._account_for_tool(account_seq)
         request = OrderCreateRequest.model_validate(
             {
                 "clientOrderId": client_order_id,
@@ -218,7 +237,7 @@ class TossInvestMCPTools:
             }
         )
         with self.client_factory() as client:
-            return _dump_model(client.orders.create_order(request, account=account_seq))
+            return _dump_model(client.orders.create_order(request, account=account))
 
     def modify_order(
         self,
@@ -231,6 +250,7 @@ class TossInvestMCPTools:
         account_seq: str | int | None = None,
     ) -> dict[str, object]:
         """Modify an existing live order by server order identifier and accountSeq."""
+        account = self._account_for_tool(account_seq)
         request = OrderModifyRequest.model_validate(
             {
                 "orderType": order_type,
@@ -240,14 +260,29 @@ class TossInvestMCPTools:
             }
         )
         with self.client_factory() as client:
-            return _dump_model(client.orders.modify_order(order_id, request, account=account_seq))
+            return _dump_model(client.orders.modify_order(order_id, request, account=account))
 
     def cancel_order(
         self, order_id: str, account_seq: str | int | None = None
     ) -> dict[str, object]:
         """Cancel an existing live order by server order identifier and accountSeq."""
+        account = self._account_for_tool(account_seq)
         with self.client_factory() as client:
-            return _dump_model(client.orders.cancel_order(order_id, account=account_seq))
+            return _dump_model(client.orders.cancel_order(order_id, account=account))
+
+    def _account_for_tool(self, account_seq: str | int | None) -> str | int | None:
+        if self.account_resolver is None:
+            return account_seq
+        return self.account_resolver(account_seq)
+
+    def _cached_accounts(self) -> list[Account] | None:
+        if self.account_list_cache_getter is None:
+            return None
+        return self.account_list_cache_getter()
+
+    def _observe_accounts(self, accounts: list[Account]) -> None:
+        if self.account_list_observer is not None:
+            self.account_list_observer(accounts)
 
 
 def _dump_model(value: object) -> dict[str, object]:
