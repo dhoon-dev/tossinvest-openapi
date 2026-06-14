@@ -25,7 +25,10 @@ from tossinvest.config import (
 if TYPE_CHECKING:
     from mcp.server.fastmcp import FastMCP
 
-ACCOUNT_SEQ_DESCRIPTION = "Optional accountSeq from list_accounts. Do not pass accountNo."
+ACCOUNT_SEQ_DESCRIPTION = (
+    "Optional accountSeq from list_accounts or find_account_by_number. Do not pass accountNo."
+)
+ACCOUNT_NO_DESCRIPTION = "Official accountNo from list_accounts."
 
 
 def create_server(
@@ -56,6 +59,13 @@ def _register_account_tools(server: FastMCP, tools: TossInvestMCPTools) -> None:
     def list_accounts() -> list[dict[str, object]]:
         """List accounts. Use accountSeq as account_seq for account-scoped tools, not accountNo."""
         return tools.list_accounts()
+
+    @server.tool()
+    def find_account_by_number(
+        account_no: str = Field(description=ACCOUNT_NO_DESCRIPTION),
+    ) -> dict[str, object]:
+        """Return the account matching accountNo, including its accountSeq."""
+        return tools.find_account_by_number(account_no)
 
 
 def _register_stock_tools(server: FastMCP, tools: TossInvestMCPTools) -> None:
@@ -308,9 +318,15 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         type=float,
         help="Credential helper timeout in seconds.",
     )
-    parser.add_argument(
+    account_group = parser.add_mutually_exclusive_group()
+    account_group.add_argument(
         "--account",
-        help="Default TossInvest accountSeq for account-scoped read-only tools.",
+        dest="account_number",
+        help="Default TossInvest accountNo for account-scoped tools.",
+    )
+    account_group.add_argument(
+        "--account-seq",
+        help="Default TossInvest accountSeq for account-scoped tools.",
     )
     parser.add_argument(
         "--base-url",
@@ -359,7 +375,8 @@ def config_from_args(args: argparse.Namespace) -> TossInvestMCPServerConfig:
     return TossInvestMCPServerConfig(
         client_id=client_id,
         client_secret=client_secret,
-        account=args.account,
+        account=args.account_seq,
+        account_number=args.account_number,
         base_url=args.base_url,
         timeout=args.timeout,
         max_retries=args.max_retries,

@@ -8,6 +8,7 @@ from types import TracebackType
 from typing import cast
 
 import pytest
+from pytest_httpx import HTTPXMock
 
 from tossinvest._mcp.config import TossInvestMCPServerConfig
 from tossinvest._mcp.credentials import CredentialHelperError
@@ -22,6 +23,8 @@ from tossinvest.models import (
     OrderResponse,
     PriceResponse,
 )
+
+from .conftest import add_api_response, add_token_response
 
 
 def _python_command(source: str) -> str:
@@ -135,12 +138,18 @@ def test_tools_dump_sdk_models_with_official_aliases() -> None:
     tools = TossInvestMCPTools(cast(ClientContextFactory, lambda: _FakeClientContext(client)))
 
     account_result = tools.list_accounts()
+    matched_account = tools.find_account_by_number("12345678901")
     price_result = tools.get_price("005930")
     prices_result = tools.get_prices(["005930", "000660"])
 
     assert account_result == [
         {"accountNo": "12345678901", "accountSeq": 1, "accountType": "BROKERAGE"}
     ]
+    assert matched_account == {
+        "accountNo": "12345678901",
+        "accountSeq": 1,
+        "accountType": "BROKERAGE",
+    }
     assert price_result == {"symbol": "005930", "lastPrice": "72000", "currency": "KRW"}
     assert prices_result[1]["symbol"] == "000660"
     assert client.closed is True
@@ -213,7 +222,7 @@ def test_config_from_args_preserves_explicit_credentials() -> None:
             "--client-secret",
             "client-secret",
             "--account",
-            "1",
+            "12345678901",
             "--base-url",
             "https://example.test",
             "--timeout",
@@ -231,13 +240,54 @@ def test_config_from_args_preserves_explicit_credentials() -> None:
     assert config == TossInvestMCPServerConfig(
         client_id="client-id",
         client_secret="client-secret",
-        account="1",
+        account_number="12345678901",
         base_url="https://example.test",
         timeout=3.5,
         max_retries=4,
         user_agent="custom-agent",
         enable_live_orders=True,
     )
+
+
+def test_config_from_args_preserves_account_seq_override() -> None:
+    args = parse_args(
+        [
+            "--client-id",
+            "client-id",
+            "--client-secret",
+            "client-secret",
+            "--account-seq",
+            "1",
+        ]
+    )
+
+    config = config_from_args(args)
+
+    assert config.account == "1"
+    assert config.account_number is None
+
+
+def test_config_create_client_resolves_account_number_once(httpx_mock: HTTPXMock) -> None:
+    add_token_response(httpx_mock)
+    add_api_response(
+        httpx_mock,
+        method="GET",
+        url="https://openapi.tossinvest.com/api/v1/accounts",
+        result=[{"accountNo": "12345678901", "accountSeq": 1, "accountType": "BROKERAGE"}],
+    )
+    config = TossInvestMCPServerConfig(
+        client_id="client-id",
+        client_secret="client-secret",
+        account_number="12345678901",
+    )
+
+    with config.create_client() as client:
+        assert client.config.default_account == 1
+    with config.create_client() as client:
+        assert client.config.default_account == 1
+
+    requests = httpx_mock.get_requests(method="GET")
+    assert len(requests) == 1
 
 
 def test_config_from_args_resolves_credentials_from_helpers() -> None:
@@ -248,7 +298,7 @@ def test_config_from_args_resolves_credentials_from_helpers() -> None:
             "--client-secret-command",
             _python_command("print('helper-client-secret')"),
             "--account",
-            "1",
+            "12345678901",
         ]
     )
 
@@ -256,7 +306,7 @@ def test_config_from_args_resolves_credentials_from_helpers() -> None:
 
     assert config.client_id == "helper-client-id"
     assert config.client_secret == "helper-client-secret"
-    assert config.account == "1"
+    assert config.account_number == "12345678901"
 
 
 def test_credential_helper_error_does_not_include_output() -> None:
@@ -285,6 +335,7 @@ async def test_create_server_registers_read_only_tools_only() -> None:
     tool_names = {tool.name for tool in await server.list_tools()}
 
     assert "list_accounts" in tool_names
+    assert "find_account_by_number" in tool_names
     assert "get_price" in tool_names
     assert "get_buying_power" in tool_names
     assert {"create_order", "modify_order", "cancel_order"}.isdisjoint(tool_names)

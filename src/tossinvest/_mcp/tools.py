@@ -9,6 +9,7 @@ from typing import cast
 
 from pydantic import BaseModel
 
+from tossinvest._mcp.accounts import find_account_by_number as _find_account_by_number
 from tossinvest.client import TossInvestClient
 from tossinvest.models import OrderCreateRequest, OrderModifyRequest
 
@@ -25,6 +26,12 @@ class TossInvestMCPTools:
         """List accounts available to the authenticated OAuth client."""
         with self.client_factory() as client:
             return _dump_model_list(client.accounts.list_accounts())
+
+    def find_account_by_number(self, account_no: str) -> dict[str, object]:
+        """Return the account matching an official accountNo."""
+        with self.client_factory() as client:
+            account = _find_account_by_number(client.accounts.list_accounts(), account_no)
+            return _dump_model(account)
 
     def get_stock(self, symbol: str) -> dict[str, object]:
         """Return one stock master record."""

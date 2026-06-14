@@ -34,12 +34,15 @@ Run it with `uvx --from`:
 uvx --from "tossinvest-openapi[mcp]" tossinvest-mcp \
   --client-id "$TOSSINVEST_API_KEY" \
   --client-secret "$TOSSINVEST_SECRET_KEY" \
-  --account "$TOSSINVEST_ACCOUNT"
+  --account "$TOSSINVEST_ACCOUNT_NO"
 ```
 
 The server does not read `.env` files or discover credentials automatically.
 Pass credentials through your MCP host configuration as command arguments. The
 default server exposes read-only tools only.
+For the MCP server, `--account` accepts the official account number
+(`accountNo`) and resolves it to `accountSeq` internally. Use `--account-seq`
+only when you already know the sequence value.
 
 For launchers, prefer credential helper commands so API key and secret values
 are not stored in config files, environment variables, or process arguments.
@@ -59,7 +62,7 @@ macOS Keychain example:
 uvx --from "tossinvest-openapi[mcp]" tossinvest-mcp \
   --client-id-command "/usr/bin/security find-generic-password -a ${USER} -s tossinvest-api-key -w" \
   --client-secret-command "/usr/bin/security find-generic-password -a ${USER} -s tossinvest-secret-key -w" \
-  --account "$TOSSINVEST_ACCOUNT"
+  --account "$TOSSINVEST_ACCOUNT_NO"
 ```
 
 Register credentials in Ubuntu `pass`:
@@ -75,8 +78,49 @@ Ubuntu `pass` example, assuming each entry contains only the credential value:
 uvx --from "tossinvest-openapi[mcp]" tossinvest-mcp \
   --client-id-command "/usr/bin/pass show tossinvest/api-key" \
   --client-secret-command "/usr/bin/pass show tossinvest/secret-key" \
-  --account "$TOSSINVEST_ACCOUNT"
+  --account "$TOSSINVEST_ACCOUNT_NO"
 ```
+
+Register the server with Codex by adding a STDIO MCP server to
+`~/.codex/config.toml`. Credential helper options can be passed directly in
+`args`; Codex passes `args` as literal process arguments, so do not rely on
+shell expansion inside this list.
+
+```toml
+[mcp_servers.tossinvest]
+command = "uvx"
+args = [
+  "--from",
+  "tossinvest-openapi[mcp]",
+  "tossinvest-mcp",
+  "--client-id-command",
+  "/usr/bin/security find-generic-password -s tossinvest-api-key -w",
+  "--client-secret-command",
+  "/usr/bin/security find-generic-password -s tossinvest-secret-key -w",
+  "--account",
+  "12345678901",
+]
+startup_timeout_sec = 30
+tool_timeout_sec = 60
+default_tools_approval_mode = "approve"
+
+[mcp_servers.tossinvest.tools.create_order]
+approval_mode = "prompt"
+
+[mcp_servers.tossinvest.tools.modify_order]
+approval_mode = "prompt"
+
+[mcp_servers.tossinvest.tools.cancel_order]
+approval_mode = "prompt"
+```
+
+Replace the `--account` value with your account number (`accountNo`), or remove
+the option and pass `account_seq` to account-scoped tools. For Ubuntu `pass`,
+use the helper command values shown in the Ubuntu example above. A separate
+launcher is only needed if you want shell behavior such as expanding
+environment variables before starting the MCP server. In Codex, start a new
+session after editing the config and use `/mcp` to check that the server is
+connected.
 
 To register live order creation, modification, and cancellation tools, pass the
 separate `--enable-live-orders` opt-in flag:
@@ -85,7 +129,7 @@ separate `--enable-live-orders` opt-in flag:
 uvx --from "tossinvest-openapi[mcp]" tossinvest-mcp \
   --client-id "$TOSSINVEST_API_KEY" \
   --client-secret "$TOSSINVEST_SECRET_KEY" \
-  --account "$TOSSINVEST_ACCOUNT" \
+  --account "$TOSSINVEST_ACCOUNT_NO" \
   --enable-live-orders
 ```
 
@@ -103,7 +147,7 @@ Example MCP configuration:
     "--client-secret",
     "your-client-secret",
     "--account",
-    "1"
+    "12345678901"
   ]
 }
 ```
