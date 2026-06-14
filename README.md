@@ -341,8 +341,11 @@ The GitHub Actions workflow in `.github/workflows/ci.yml` runs formatting, linti
 type checking, mocked unit tests, documentation builds, and package builds on
 pushes and pull requests.
 
-Read-only live tests run on pushes to `main` and on manual `workflow_dispatch`
-runs. Configure these repository secrets before enabling live CI:
+Read-only live tests do not run in CI because the `live` job currently fails on
+GitHub-hosted runners. The job is kept disabled in `.github/workflows/ci.yml`
+so it is skipped for pushes, pull requests, and manual `workflow_dispatch` runs.
+
+Configure these repository secrets before re-enabling live CI:
 
 - `TOSSINVEST_API_KEY`
 - `TOSSINVEST_SECRET_KEY`
@@ -359,5 +362,4 @@ Local workflow checks can be run with `act`:
 
 ```bash
 act push -j quality -W .github/workflows/ci.yml
-act workflow_dispatch -j live -W .github/workflows/ci.yml --secret-file .env
 ```

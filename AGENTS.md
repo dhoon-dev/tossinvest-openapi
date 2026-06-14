@@ -78,9 +78,10 @@ The GitHub Actions workflow is `.github/workflows/ci.yml`.
 
 - `quality` runs formatting, linting, type checking, non-live tests, Sphinx docs,
   and package build.
-- `live` depends on `quality` and runs read-only live API tests on pushes to
-  `main` and on manual `workflow_dispatch`.
-- GitHub repository secrets required for live CI:
+- `live` depends on `quality` but is disabled in CI because it currently fails
+  on GitHub-hosted runners. It is skipped for pushes, pull requests, and manual
+  `workflow_dispatch` runs.
+- GitHub repository secrets required before re-enabling live CI:
   - `TOSSINVEST_API_KEY`
   - `TOSSINVEST_SECRET_KEY`
 - Optional live CI values should be repository variables unless they are
@@ -90,7 +91,6 @@ Local `act` validation on Apple Silicon/Docker Desktop should use arm64:
 
 ```bash
 act push -j quality -W .github/workflows/ci.yml --container-architecture linux/arm64
-act workflow_dispatch -j live -W .github/workflows/ci.yml --secret-file .env --container-architecture linux/arm64
 ```
 
 The `linux/amd64` act image may fail in `astral-sh/setup-uv` post-steps because
