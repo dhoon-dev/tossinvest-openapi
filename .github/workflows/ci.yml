@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    tags:
+      - "v*"
   pull_request:
   workflow_dispatch:
 
@@ -26,6 +28,10 @@ jobs:
 
       - name: Install dependencies
         run: uv sync --locked --all-extras --group docs
+
+      - name: Validate release tag
+        if: startsWith(github.ref, 'refs/tags/')
+        run: uv run --locked python scripts/validate_release_tag.py "${{ github.ref_name }}"
 
       - name: Check formatting
         run: uv run --locked ruff format --check .

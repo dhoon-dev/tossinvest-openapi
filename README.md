@@ -339,7 +339,17 @@ address. Live order tests must require the separate
 
 The GitHub Actions workflow in `.github/workflows/ci.yml` runs formatting, linting,
 type checking, mocked unit tests, documentation builds, and package builds on
-pushes and pull requests.
+pushes, pull requests, and `v*` tag pushes. Tag pushes also verify that the tag
+version matches `pyproject.toml`, `uv.lock`, `src/tossinvest/_version.py`, and
+`docs/conf.py`.
+
+Maintainers can publish a tagged release from `.github/workflows/release.yml`
+after tag validation passes. Run the `Release` workflow manually with an existing
+tag such as `v1.0.0`. The workflow checks out that tag, repeats the local quality
+gate, builds the package, archives the Sphinx HTML output, and creates a GitHub
+Release with the package and documentation artifacts attached. Published
+non-draft, non-prerelease runs also deploy the Sphinx HTML output to GitHub Pages
+as the latest documentation site.
 
 Read-only live tests do not run in CI because the `live` job currently fails on
 GitHub-hosted runners. The job is kept disabled in `.github/workflows/ci.yml`

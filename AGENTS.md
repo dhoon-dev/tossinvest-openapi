@@ -77,7 +77,14 @@ comment.
 The GitHub Actions workflow is `.github/workflows/ci.yml`.
 
 - `quality` runs formatting, linting, type checking, non-live tests, Sphinx docs,
-  and package build.
+  and package build on `main`, pull requests, manual runs, and `v*` tag pushes.
+- Tag pushes validate that the `v`-prefixed tag version matches
+  `pyproject.toml`, `uv.lock`, `src/tossinvest/_version.py`, and
+  `docs/conf.py`.
+- `.github/workflows/release.yml` is manually dispatched by maintainers after a
+  tag passes validation. It checks out the tag, reruns the quality gate, builds
+  the package, archives Sphinx HTML docs, creates the GitHub Release, and deploys
+  non-draft, non-prerelease docs to GitHub Pages as the latest documentation.
 - `live` depends on `quality` but is disabled in CI because it currently fails
   on GitHub-hosted runners. It is skipped for pushes, pull requests, and manual
   `workflow_dispatch` runs.
