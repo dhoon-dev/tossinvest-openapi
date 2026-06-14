@@ -132,7 +132,9 @@ during live tests.
   - `test` for test-only changes.
   - `refactor` for internal code changes that do not alter behavior.
   - `ci` for GitHub Actions and CI configuration changes.
-- Keep the title in English, concise, and specific. Use the body to explain the
+- Keep the title in English, concise, specific, and no longer than 50
+  characters.
+- Wrap body lines at 72 characters or fewer. Use the body to explain the
   reason, impact, or notable verification for the change.
 
 ## Implementation Guidelines
