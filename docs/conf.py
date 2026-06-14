@@ -12,7 +12,7 @@ sys.path.insert(0, str(SRC))
 project = "tossinvest-openapi"
 author = "TossInvest OpenAPI SDK Maintainers"
 copyright = "2026, TossInvest OpenAPI SDK Maintainers"
-release = "1.0.0"
+release = "1.0.1"
 
 extensions = [
     "sphinx.ext.autodoc",

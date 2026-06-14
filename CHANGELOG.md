@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.1
+
+- Fixed MCP account lookup caching to avoid duplicate `list_accounts` calls
+  within the TossInvest `ACCOUNT` rate-limit window.
+- Updated retry handling to honor TossInvest rate-limit retry headers.
+
 ## 0.1.0
 
 - Initial unofficial SDK scaffold for Toss Securities Open API.
