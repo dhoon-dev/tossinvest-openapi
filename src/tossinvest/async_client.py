@@ -16,6 +16,7 @@ from .config import (
     DEFAULT_USER_AGENT,
     TossInvestConfig,
 )
+from .openapi import OPENAPI_DOCUMENT_PATH, SUPPORTED_OPENAPI_VERSION, _parse_openapi_version
 from .resources.accounts import AsyncAccountsResource
 from .resources.assets import AsyncAssetsResource
 from .resources.market_data import AsyncMarketDataResource
@@ -70,6 +71,29 @@ class AsyncTossInvestClient:
     def is_closed(self) -> bool:
         """Return whether this client owns a closed HTTP transport."""
         return self._http.is_closed
+
+    def get_supported_openapi_version(self) -> str:
+        """Return the official OpenAPI version modeled by this SDK release."""
+        return SUPPORTED_OPENAPI_VERSION
+
+    async def get_latest_openapi_version(self) -> str:
+        """Fetch and return the latest official TossInvest OpenAPI version.
+
+        This calls ``/openapi-docs/latest/openapi.json`` without OAuth and
+        returns the document's ``info.version`` value.
+
+        Raises:
+            TossInvestAPIError: The OpenAPI document is missing ``info.version``
+                or the API returns an error response.
+            TossInvestHTTPError: HTTP transport fails.
+
+        """
+        document = await self._http.request(
+            "GET",
+            OPENAPI_DOCUMENT_PATH,
+            authenticated=False,
+        )
+        return _parse_openapi_version(document)
 
     async def get_access_token(self) -> str:
         """Return a valid OAuth access token without printing or persisting it.

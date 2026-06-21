@@ -3,7 +3,13 @@ from __future__ import annotations
 import pytest
 from pytest_httpx import HTTPXMock
 
-from tossinvest import AsyncTossInvestClient, TossInvestClient, TossInvestValidationError
+from tossinvest import (
+    SUPPORTED_OPENAPI_VERSION,
+    AsyncTossInvestClient,
+    TossInvestAPIError,
+    TossInvestClient,
+    TossInvestValidationError,
+)
 
 from .conftest import add_api_response, add_token_response, make_client, price_payload
 
@@ -117,6 +123,36 @@ def test_sync_context_manager_closes_owned_client() -> None:
     with make_client() as client:
         assert not client.is_closed
     assert client.is_closed
+
+
+def test_sync_openapi_version_methods_do_not_require_auth(httpx_mock: HTTPXMock) -> None:
+    httpx_mock.add_response(
+        method="GET",
+        url="https://openapi.tossinvest.com/openapi-docs/latest/openapi.json",
+        json={"openapi": "3.1.0", "info": {"title": "TossInvest OpenAPI", "version": "9.9.9"}},
+    )
+    client = make_client()
+
+    supported = client.get_supported_openapi_version()
+    latest = client.get_latest_openapi_version()
+
+    request = httpx_mock.get_request(method="GET")
+    assert supported == SUPPORTED_OPENAPI_VERSION == "1.1.1"
+    assert latest == "9.9.9"
+    assert request is not None
+    assert "authorization" not in request.headers
+
+
+def test_latest_openapi_version_requires_info_version(httpx_mock: HTTPXMock) -> None:
+    httpx_mock.add_response(
+        method="GET",
+        url="https://openapi.tossinvest.com/openapi-docs/latest/openapi.json",
+        json={"openapi": "3.1.0", "info": {}},
+    )
+    client = make_client()
+
+    with pytest.raises(TossInvestAPIError, match=r"info\.version"):
+        client.get_latest_openapi_version()
 
 
 async def test_async_context_manager_closes_owned_client() -> None:

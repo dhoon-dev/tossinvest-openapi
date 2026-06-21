@@ -170,6 +170,24 @@ Asynchronous Client
 
    asyncio.run(main())
 
+OpenAPI Version Metadata
+------------------------
+
+Use ``SUPPORTED_OPENAPI_VERSION`` for the official OpenAPI version modeled by
+this SDK release. Use ``get_latest_openapi_version()`` to fetch the current
+official ``/openapi-docs/latest/openapi.json`` version without OAuth.
+
+.. code-block:: python
+
+   from tossinvest import SUPPORTED_OPENAPI_VERSION, TossInvestClient
+
+   with TossInvestClient("client-id", "client-secret") as client:
+       supported = client.get_supported_openapi_version()
+       latest = client.get_latest_openapi_version()
+
+   assert supported == SUPPORTED_OPENAPI_VERSION
+   print(latest)
+
 Account-Scoped Operations
 -------------------------
 

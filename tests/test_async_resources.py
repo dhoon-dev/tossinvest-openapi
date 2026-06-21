@@ -2,7 +2,12 @@ from __future__ import annotations
 
 from pytest_httpx import HTTPXMock
 
-from tossinvest import AsyncTossInvestClient, OrderCreateRequest, OrderModifyRequest
+from tossinvest import (
+    SUPPORTED_OPENAPI_VERSION,
+    AsyncTossInvestClient,
+    OrderCreateRequest,
+    OrderModifyRequest,
+)
 
 from .conftest import (
     TOKEN_URL,
@@ -93,6 +98,26 @@ async def test_async_market_data_methods(httpx_mock: HTTPXMock) -> None:
     assert price_limit.upper_limit_price == "90000"
     assert candles.candles[0].close_price == "72000"
     assert len(httpx_mock.get_requests(method="POST", url=TOKEN_URL)) == 1
+
+
+async def test_async_openapi_version_methods_do_not_require_auth(
+    httpx_mock: HTTPXMock,
+) -> None:
+    httpx_mock.add_response(
+        method="GET",
+        url="https://openapi.tossinvest.com/openapi-docs/latest/openapi.json",
+        json={"openapi": "3.1.0", "info": {"title": "TossInvest OpenAPI", "version": "9.9.9"}},
+    )
+
+    async with AsyncTossInvestClient("client-id", "client-secret") as client:
+        supported = client.get_supported_openapi_version()
+        latest = await client.get_latest_openapi_version()
+
+    request = httpx_mock.get_request(method="GET")
+    assert supported == SUPPORTED_OPENAPI_VERSION == "1.1.1"
+    assert latest == "9.9.9"
+    assert request is not None
+    assert "authorization" not in request.headers
 
 
 async def test_async_reference_data_methods(httpx_mock: HTTPXMock) -> None:

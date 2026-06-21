@@ -42,8 +42,11 @@ from .models import (
     StockWarning,
     Trade,
 )
+from .openapi import OPENAPI_DOCUMENT_PATH, SUPPORTED_OPENAPI_VERSION
 
 __all__ = [
+    "OPENAPI_DOCUMENT_PATH",
+    "SUPPORTED_OPENAPI_VERSION",
     "Account",
     "ApiError",
     "AsyncTossInvestClient",
