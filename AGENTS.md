@@ -34,6 +34,11 @@ translation.
 - Keep GitHub Actions on `astral-sh/setup-uv` unless there is a concrete
   incompatibility with hosted GitHub runners.
 
+## Repo-Local Codex Skills
+
+- Use `$toss-bump-version` for release version bumps and tag validation.
+- Use `$toss-commit-changes` when staging and creating commits in this repo.
+
 ## Quality Gate
 
 Run the focused command for the change first. Before handing off broad changes,
@@ -118,42 +123,10 @@ uv run --locked --group docs sphinx-build -W -b html docs docs/_build/html
 
 ## Commit Messages
 
-- Use Conventional Commits-style titles:
-  - `feat: add live account discovery`
-  - `fix: preserve default live API base URL`
-  - `chore: update CI workflow`
-- Write a title, then one blank line, then a body:
-
-```text
-fix: preserve default live API base URL
-
-Ensure empty optional CI variables do not override the SDK default base URL
-during live tests.
-```
-
-- Use these default types:
-  - `feat` for user-visible SDK features or supported API additions.
-  - `fix` for bug fixes, schema corrections, and behavioral regressions.
-  - `chore` for tooling, CI, dependency, repository, or maintenance changes.
-  - `docs` for documentation-only changes.
-  - `test` for test-only changes.
-  - `refactor` for internal code changes that do not alter behavior.
-  - `ci` for GitHub Actions and CI configuration changes.
-- Keep the title in English, concise, specific, and no longer than 50
-  characters.
-- Wrap body lines at 72 characters or fewer. Use the body to explain the
-  reason, impact, or notable verification for the change.
-- Validate commit messages with:
-
-```bash
-uv run --locked python scripts/check_commit_messages.py --message-file <path>
-```
-
-- Local checkouts should enable the shared commit hook with:
-
-```bash
-git config core.hooksPath .githooks
-```
+- Use `$toss-commit-changes` when staging and creating commits.
+- Follow the repository Conventional Commits rules enforced by
+  `scripts/check_commit_messages.py`.
+- Never bypass the commit hook with `--no-verify`.
 
 ## Implementation Guidelines
 
