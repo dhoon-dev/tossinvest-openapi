@@ -77,6 +77,8 @@ class TossInvestClient:
         The token is cached in memory until shortly before expiration. Callers
         normally do not need this method because resource requests inject the
         ``Authorization`` header automatically.
+        Token issuance uses rate limit group ``AUTH``. On ``429``, respect
+        ``Retry-After`` or ``X-RateLimit-Reset`` before retrying auth requests.
 
         Raises:
             TossInvestAuthError: Token issuance fails.
@@ -100,6 +102,9 @@ class TossInvestClient:
         Prefer resource methods for stable public APIs. This method is exposed
         for advanced use cases that need an endpoint before an ergonomic wrapper
         exists.
+        Rate limit group depends on the target endpoint. On ``429``, respect
+        ``Retry-After`` or ``X-RateLimit-Reset`` before retrying that endpoint's
+        group.
 
         Args:
             method: HTTP method to send.

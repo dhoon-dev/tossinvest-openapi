@@ -19,6 +19,9 @@ class StocksResource:
     def get_stocks(self, symbols: str | Sequence[str]) -> list[StockInfo]:
         """Return stock master records for one or more symbols.
 
+        Rate limit group: ``STOCK``. On ``429``, respect ``Retry-After`` or
+        ``X-RateLimit-Reset`` before retrying stock info endpoints.
+
         Args:
             symbols: One symbol, a comma-separated symbol string, or a sequence
                 of symbols.
@@ -35,6 +38,9 @@ class StocksResource:
 
     def get_stock(self, symbol: str) -> StockInfo:
         """Return the first stock master record for one symbol.
+
+        Rate limit group: ``STOCK``. On ``429``, respect ``Retry-After`` or
+        ``X-RateLimit-Reset`` before retrying stock info endpoints.
 
         Args:
             symbol: Stock symbol accepted by the official API.
@@ -53,6 +59,9 @@ class StocksResource:
 
     def get_stock_warnings(self, symbol: str) -> list[StockWarning]:
         """Return trading warnings for a symbol.
+
+        Rate limit group: ``STOCK``. On ``429``, respect ``Retry-After`` or
+        ``X-RateLimit-Reset`` before retrying stock info endpoints.
 
         Args:
             symbol: Stock symbol accepted by the official API.
@@ -77,6 +86,9 @@ class AsyncStocksResource:
     async def get_stocks(self, symbols: str | Sequence[str]) -> list[StockInfo]:
         """Return stock master records for one or more symbols.
 
+        Rate limit group: ``STOCK``. On ``429``, respect ``Retry-After`` or
+        ``X-RateLimit-Reset`` before retrying stock info endpoints.
+
         Args:
             symbols: One symbol, a comma-separated symbol string, or a sequence
                 of symbols.
@@ -93,6 +105,9 @@ class AsyncStocksResource:
 
     async def get_stock(self, symbol: str) -> StockInfo:
         """Return the first stock master record for one symbol.
+
+        Rate limit group: ``STOCK``. On ``429``, respect ``Retry-After`` or
+        ``X-RateLimit-Reset`` before retrying stock info endpoints.
 
         Args:
             symbol: Stock symbol accepted by the official API.
@@ -111,6 +126,9 @@ class AsyncStocksResource:
 
     async def get_stock_warnings(self, symbol: str) -> list[StockWarning]:
         """Return trading warnings for a symbol.
+
+        Rate limit group: ``STOCK``. On ``429``, respect ``Retry-After`` or
+        ``X-RateLimit-Reset`` before retrying stock info endpoints.
 
         Args:
             symbol: Stock symbol accepted by the official API.

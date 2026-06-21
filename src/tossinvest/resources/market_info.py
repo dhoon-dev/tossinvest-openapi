@@ -27,6 +27,10 @@ class MarketInfoResource:
     ) -> ExchangeRateResponse:
         """Return an exchange rate between two supported currencies.
 
+        Rate limit group: ``MARKET_INFO``. On ``429``, respect
+        ``Retry-After`` or ``X-RateLimit-Reset`` before retrying market info
+        endpoints.
+
         Args:
             base_currency: Base currency code supported by the API.
             quote_currency: Quote currency code supported by the API.
@@ -51,6 +55,10 @@ class MarketInfoResource:
     def get_kr_market_calendar(self, *, date: str | None = None) -> KrMarketCalendarResponse:
         """Return Korean market calendar information.
 
+        Rate limit group: ``MARKET_INFO``. On ``429``, respect
+        ``Retry-After`` or ``X-RateLimit-Reset`` before retrying market info
+        endpoints.
+
         Args:
             date: Optional date to center the calendar response.
 
@@ -63,6 +71,10 @@ class MarketInfoResource:
 
     def get_us_market_calendar(self, *, date: str | None = None) -> UsMarketCalendarResponse:
         """Return US market calendar information.
+
+        Rate limit group: ``MARKET_INFO``. On ``429``, respect
+        ``Retry-After`` or ``X-RateLimit-Reset`` before retrying market info
+        endpoints.
 
         Args:
             date: Optional date to center the calendar response.
@@ -90,6 +102,10 @@ class AsyncMarketInfoResource:
     ) -> ExchangeRateResponse:
         """Return an exchange rate between two supported currencies.
 
+        Rate limit group: ``MARKET_INFO``. On ``429``, respect
+        ``Retry-After`` or ``X-RateLimit-Reset`` before retrying market info
+        endpoints.
+
         Args:
             base_currency: Base currency code supported by the API.
             quote_currency: Quote currency code supported by the API.
@@ -114,6 +130,10 @@ class AsyncMarketInfoResource:
     async def get_kr_market_calendar(self, *, date: str | None = None) -> KrMarketCalendarResponse:
         """Return Korean market calendar information.
 
+        Rate limit group: ``MARKET_INFO``. On ``429``, respect
+        ``Retry-After`` or ``X-RateLimit-Reset`` before retrying market info
+        endpoints.
+
         Args:
             date: Optional date to center the calendar response.
 
@@ -128,6 +148,10 @@ class AsyncMarketInfoResource:
 
     async def get_us_market_calendar(self, *, date: str | None = None) -> UsMarketCalendarResponse:
         """Return US market calendar information.
+
+        Rate limit group: ``MARKET_INFO``. On ``429``, respect
+        ``Retry-After`` or ``X-RateLimit-Reset`` before retrying market info
+        endpoints.
 
         Args:
             date: Optional date to center the calendar response.

@@ -16,6 +16,8 @@ class AccountsResource:
         """List accounts available to the authenticated OAuth client.
 
         This endpoint requires OAuth but does not require an account header.
+        Rate limit group: ``ACCOUNT``. On ``429``, respect ``Retry-After`` or
+        ``X-RateLimit-Reset`` before retrying account endpoints.
 
         Raises:
             TossInvestAuthError: Authentication fails.
@@ -26,7 +28,11 @@ class AccountsResource:
         return parse_model_list(Account, result)
 
     def get_accounts(self) -> list[Account]:
-        """Alias for list_accounts matching the official operation name."""
+        """Alias for list_accounts matching the official operation name.
+
+        Rate limit group: ``ACCOUNT``. On ``429``, respect ``Retry-After`` or
+        ``X-RateLimit-Reset`` before retrying account endpoints.
+        """
         return self.list_accounts()
 
 
@@ -40,6 +46,8 @@ class AsyncAccountsResource:
         """List accounts available to the authenticated OAuth client.
 
         This endpoint requires OAuth but does not require an account header.
+        Rate limit group: ``ACCOUNT``. On ``429``, respect ``Retry-After`` or
+        ``X-RateLimit-Reset`` before retrying account endpoints.
 
         Raises:
             TossInvestAuthError: Authentication fails.
@@ -50,5 +58,9 @@ class AsyncAccountsResource:
         return parse_model_list(Account, result)
 
     async def get_accounts(self) -> list[Account]:
-        """Alias for list_accounts matching the official operation name."""
+        """Alias for list_accounts matching the official operation name.
+
+        Rate limit group: ``ACCOUNT``. On ``429``, respect ``Retry-After`` or
+        ``X-RateLimit-Reset`` before retrying account endpoints.
+        """
         return await self.list_accounts()

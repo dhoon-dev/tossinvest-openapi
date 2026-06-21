@@ -257,6 +257,7 @@ async def test_async_account_scoped_methods(httpx_mock: HTTPXMock) -> None:
 
     holdings_request = httpx_mock.get_requests(method="GET")[0]
     create_request = httpx_mock.get_requests(method="POST")[-3]
+    cancel_request = httpx_mock.get_requests(method="POST")[-1]
     assert holdings.items == []
     assert orders.orders[0].order_id == "order-1"
     assert created.client_order_id == "client-order-1"
@@ -271,3 +272,5 @@ async def test_async_account_scoped_methods(httpx_mock: HTTPXMock) -> None:
         '{"clientOrderId":"client-order-1","symbol":"005930","side":"BUY",'
         '"orderType":"LIMIT","quantity":"1","price":"70000"}'
     )
+    assert cancel_request.headers["content-type"] == "application/json"
+    assert cancel_request.read() == b""

@@ -21,6 +21,8 @@ from tossinvest.models import (
 
 from ._utils import require_non_empty
 
+JSON_CONTENT_TYPE_HEADER = {"Content-Type": "application/json"}
+
 
 class OrdersResource:
     """Synchronous order endpoints requiring an account header."""
@@ -43,6 +45,9 @@ class OrdersResource:
 
         Requires ``X-Tossinvest-Account``. ``status`` must follow the official
         order-history grouping values such as ``"OPEN"`` or ``"CLOSED"``.
+        Rate limit group: ``ORDER_HISTORY``. On ``429``, respect
+        ``Retry-After`` or ``X-RateLimit-Reset`` before retrying order history
+        endpoints.
 
         Args:
             status: Official order lifecycle group filter.
@@ -82,6 +87,8 @@ class OrdersResource:
         This method can place a real securities order. Validate the payload,
         account, market session, and all external safeguards before calling it.
         The SDK does not retry this non-idempotent endpoint automatically.
+        Rate limit group: ``ORDER``. On ``429``, respect ``Retry-After`` or
+        ``X-RateLimit-Reset`` before retrying order endpoints.
 
         Args:
             request: Validated order creation body.
@@ -104,6 +111,10 @@ class OrdersResource:
 
     def get_order(self, order_id: str, *, account: str | int | None = None) -> Order:
         """Return one order by server order identifier.
+
+        Rate limit group: ``ORDER_HISTORY``. On ``429``, respect
+        ``Retry-After`` or ``X-RateLimit-Reset`` before retrying order history
+        endpoints.
 
         Args:
             order_id: Server order identifier returned by order APIs.
@@ -134,6 +145,8 @@ class OrdersResource:
 
         This method can change a real pending order. The SDK does not retry this
         non-idempotent endpoint automatically.
+        Rate limit group: ``ORDER``. On ``429``, respect ``Retry-After`` or
+        ``X-RateLimit-Reset`` before retrying order endpoints.
 
         Args:
             order_id: Server order identifier to modify.
@@ -163,6 +176,8 @@ class OrdersResource:
 
         This method can cancel a real pending order. The SDK does not retry this
         non-idempotent endpoint automatically.
+        Rate limit group: ``ORDER``. On ``429``, respect ``Retry-After`` or
+        ``X-RateLimit-Reset`` before retrying order endpoints.
 
         Args:
             order_id: Server order identifier to cancel.
@@ -178,6 +193,7 @@ class OrdersResource:
         result = self._http.request(
             "POST",
             f"/api/v1/orders/{require_non_empty('order_id', order_id)}/cancel",
+            headers=JSON_CONTENT_TYPE_HEADER,
             account_required=True,
             account=account,
         )
@@ -187,6 +203,9 @@ class OrdersResource:
         self, *, currency: CurrencyCode, account: str | int | None = None
     ) -> BuyingPowerResponse:
         """Return cash buying power for the requested currency.
+
+        Rate limit group: ``ORDER_INFO``. On ``429``, respect ``Retry-After``
+        or ``X-RateLimit-Reset`` before retrying order info endpoints.
 
         Args:
             currency: Currency code supported by the official API.
@@ -211,6 +230,9 @@ class OrdersResource:
     ) -> SellableQuantityResponse:
         """Return the sellable quantity for a symbol.
 
+        Rate limit group: ``ORDER_INFO``. On ``429``, respect ``Retry-After``
+        or ``X-RateLimit-Reset`` before retrying order info endpoints.
+
         Args:
             symbol: Stock symbol accepted by the official API.
             account: Optional account sequence override.
@@ -231,6 +253,9 @@ class OrdersResource:
 
     def get_commissions(self, *, account: str | int | None = None) -> list[Commission]:
         """Return commission rules for the configured or overridden account.
+
+        Rate limit group: ``ORDER_INFO``. On ``429``, respect ``Retry-After``
+        or ``X-RateLimit-Reset`` before retrying order info endpoints.
 
         Args:
             account: Optional account sequence override.
@@ -270,6 +295,9 @@ class AsyncOrdersResource:
 
         Requires ``X-Tossinvest-Account``. ``status`` must follow the official
         order-history grouping values such as ``"OPEN"`` or ``"CLOSED"``.
+        Rate limit group: ``ORDER_HISTORY``. On ``429``, respect
+        ``Retry-After`` or ``X-RateLimit-Reset`` before retrying order history
+        endpoints.
 
         Args:
             status: Official order lifecycle group filter.
@@ -309,6 +337,8 @@ class AsyncOrdersResource:
         This method can place a real securities order. Validate the payload,
         account, market session, and all external safeguards before calling it.
         The SDK does not retry this non-idempotent endpoint automatically.
+        Rate limit group: ``ORDER``. On ``429``, respect ``Retry-After`` or
+        ``X-RateLimit-Reset`` before retrying order endpoints.
 
         Args:
             request: Validated order creation body.
@@ -331,6 +361,10 @@ class AsyncOrdersResource:
 
     async def get_order(self, order_id: str, *, account: str | int | None = None) -> Order:
         """Return one order by server order identifier.
+
+        Rate limit group: ``ORDER_HISTORY``. On ``429``, respect
+        ``Retry-After`` or ``X-RateLimit-Reset`` before retrying order history
+        endpoints.
 
         Args:
             order_id: Server order identifier returned by order APIs.
@@ -361,6 +395,8 @@ class AsyncOrdersResource:
 
         This method can change a real pending order. The SDK does not retry this
         non-idempotent endpoint automatically.
+        Rate limit group: ``ORDER``. On ``429``, respect ``Retry-After`` or
+        ``X-RateLimit-Reset`` before retrying order endpoints.
 
         Args:
             order_id: Server order identifier to modify.
@@ -390,6 +426,8 @@ class AsyncOrdersResource:
 
         This method can cancel a real pending order. The SDK does not retry this
         non-idempotent endpoint automatically.
+        Rate limit group: ``ORDER``. On ``429``, respect ``Retry-After`` or
+        ``X-RateLimit-Reset`` before retrying order endpoints.
 
         Args:
             order_id: Server order identifier to cancel.
@@ -405,6 +443,7 @@ class AsyncOrdersResource:
         result = await self._http.request(
             "POST",
             f"/api/v1/orders/{require_non_empty('order_id', order_id)}/cancel",
+            headers=JSON_CONTENT_TYPE_HEADER,
             account_required=True,
             account=account,
         )
@@ -414,6 +453,9 @@ class AsyncOrdersResource:
         self, *, currency: CurrencyCode, account: str | int | None = None
     ) -> BuyingPowerResponse:
         """Return cash buying power for the requested currency.
+
+        Rate limit group: ``ORDER_INFO``. On ``429``, respect ``Retry-After``
+        or ``X-RateLimit-Reset`` before retrying order info endpoints.
 
         Args:
             currency: Currency code supported by the official API.
@@ -438,6 +480,9 @@ class AsyncOrdersResource:
     ) -> SellableQuantityResponse:
         """Return the sellable quantity for a symbol.
 
+        Rate limit group: ``ORDER_INFO``. On ``429``, respect ``Retry-After``
+        or ``X-RateLimit-Reset`` before retrying order info endpoints.
+
         Args:
             symbol: Stock symbol accepted by the official API.
             account: Optional account sequence override.
@@ -458,6 +503,9 @@ class AsyncOrdersResource:
 
     async def get_commissions(self, *, account: str | int | None = None) -> list[Commission]:
         """Return commission rules for the configured or overridden account.
+
+        Rate limit group: ``ORDER_INFO``. On ``429``, respect ``Retry-After``
+        or ``X-RateLimit-Reset`` before retrying order info endpoints.
 
         Args:
             account: Optional account sequence override.

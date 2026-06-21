@@ -19,6 +19,8 @@ class AssetsResource:
 
         Requires ``X-Tossinvest-Account``. Pass ``account`` to override the
         client's default account for this call.
+        Rate limit group: ``ASSET``. On ``429``, respect ``Retry-After`` or
+        ``X-RateLimit-Reset`` before retrying asset endpoints.
 
         Args:
             symbol: Optional symbol filter.
@@ -52,6 +54,8 @@ class AsyncAssetsResource:
 
         Requires ``X-Tossinvest-Account``. Pass ``account`` to override the
         client's default account for this call.
+        Rate limit group: ``ASSET``. On ``429``, respect ``Retry-After`` or
+        ``X-RateLimit-Reset`` before retrying asset endpoints.
 
         Args:
             symbol: Optional symbol filter.

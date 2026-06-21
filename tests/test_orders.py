@@ -124,9 +124,12 @@ def test_modify_cancel_and_order_info_methods(httpx_mock: HTTPXMock) -> None:
     canceled = client.orders.cancel_order("order-1")
     buying_power = client.orders.get_buying_power(currency="KRW")
 
+    cancel_request = httpx_mock.get_requests(method="POST")[-1]
     assert modified.order_id == "order-1"
     assert canceled.order_id == "order-1"
     assert buying_power.cash_buying_power == "100000"
+    assert cancel_request.headers["content-type"] == "application/json"
+    assert cancel_request.read() == b""
 
 
 def test_get_order_parses_response(httpx_mock: HTTPXMock) -> None:

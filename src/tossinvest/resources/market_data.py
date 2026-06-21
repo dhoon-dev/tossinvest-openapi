@@ -28,6 +28,10 @@ class MarketDataResource:
     def get_orderbook(self, symbol: str) -> OrderbookResponse:
         """Return the current orderbook for a symbol.
 
+        Rate limit group: ``MARKET_DATA``. On ``429``, respect
+        ``Retry-After`` or ``X-RateLimit-Reset`` before retrying market data
+        endpoints.
+
         Args:
             symbol: Stock symbol accepted by the official API.
 
@@ -42,6 +46,9 @@ class MarketDataResource:
         """Return current prices for one or more symbols.
 
         The official API accepts up to 200 comma-separated symbols.
+        Rate limit group: ``MARKET_DATA``. On ``429``, respect
+        ``Retry-After`` or ``X-RateLimit-Reset`` before retrying market data
+        endpoints.
 
         Args:
             symbols: One symbol, a comma-separated symbol string, or a sequence
@@ -59,6 +66,10 @@ class MarketDataResource:
 
     def get_price(self, symbol: str) -> PriceResponse:
         """Return the first current price result for one symbol.
+
+        Rate limit group: ``MARKET_DATA``. On ``429``, respect
+        ``Retry-After`` or ``X-RateLimit-Reset`` before retrying market data
+        endpoints.
 
         Args:
             symbol: Stock symbol accepted by the official API.
@@ -78,6 +89,10 @@ class MarketDataResource:
     def get_trades(self, symbol: str, *, count: int | None = None) -> list[Trade]:
         """Return recent trades for a symbol.
 
+        Rate limit group: ``MARKET_DATA``. On ``429``, respect
+        ``Retry-After`` or ``X-RateLimit-Reset`` before retrying market data
+        endpoints.
+
         Args:
             symbol: Stock symbol accepted by the official API.
             count: Optional number of trades to return.
@@ -93,6 +108,10 @@ class MarketDataResource:
 
     def get_price_limit(self, symbol: str) -> PriceLimitResponse:
         """Return the upper and lower price limits for a symbol.
+
+        Rate limit group: ``MARKET_DATA``. On ``429``, respect
+        ``Retry-After`` or ``X-RateLimit-Reset`` before retrying market data
+        endpoints.
 
         Args:
             symbol: Stock symbol accepted by the official API.
@@ -114,6 +133,10 @@ class MarketDataResource:
         adjusted: bool | None = None,
     ) -> CandlePageResponse:
         """Return candle data for a symbol and interval.
+
+        Rate limit group: ``MARKET_DATA_CHART``. On ``429``, respect
+        ``Retry-After`` or ``X-RateLimit-Reset`` before retrying market data
+        chart endpoints.
 
         Args:
             symbol: Stock symbol accepted by the official API.
@@ -150,6 +173,10 @@ class AsyncMarketDataResource:
     async def get_orderbook(self, symbol: str) -> OrderbookResponse:
         """Return the current orderbook for a symbol.
 
+        Rate limit group: ``MARKET_DATA``. On ``429``, respect
+        ``Retry-After`` or ``X-RateLimit-Reset`` before retrying market data
+        endpoints.
+
         Args:
             symbol: Stock symbol accepted by the official API.
 
@@ -164,6 +191,9 @@ class AsyncMarketDataResource:
         """Return current prices for one or more symbols.
 
         The official API accepts up to 200 comma-separated symbols.
+        Rate limit group: ``MARKET_DATA``. On ``429``, respect
+        ``Retry-After`` or ``X-RateLimit-Reset`` before retrying market data
+        endpoints.
 
         Args:
             symbols: One symbol, a comma-separated symbol string, or a sequence
@@ -181,6 +211,10 @@ class AsyncMarketDataResource:
 
     async def get_price(self, symbol: str) -> PriceResponse:
         """Return the first current price result for one symbol.
+
+        Rate limit group: ``MARKET_DATA``. On ``429``, respect
+        ``Retry-After`` or ``X-RateLimit-Reset`` before retrying market data
+        endpoints.
 
         Args:
             symbol: Stock symbol accepted by the official API.
@@ -200,6 +234,10 @@ class AsyncMarketDataResource:
     async def get_trades(self, symbol: str, *, count: int | None = None) -> list[Trade]:
         """Return recent trades for a symbol.
 
+        Rate limit group: ``MARKET_DATA``. On ``429``, respect
+        ``Retry-After`` or ``X-RateLimit-Reset`` before retrying market data
+        endpoints.
+
         Args:
             symbol: Stock symbol accepted by the official API.
             count: Optional number of trades to return.
@@ -215,6 +253,10 @@ class AsyncMarketDataResource:
 
     async def get_price_limit(self, symbol: str) -> PriceLimitResponse:
         """Return the upper and lower price limits for a symbol.
+
+        Rate limit group: ``MARKET_DATA``. On ``429``, respect
+        ``Retry-After`` or ``X-RateLimit-Reset`` before retrying market data
+        endpoints.
 
         Args:
             symbol: Stock symbol accepted by the official API.
@@ -236,6 +278,10 @@ class AsyncMarketDataResource:
         adjusted: bool | None = None,
     ) -> CandlePageResponse:
         """Return candle data for a symbol and interval.
+
+        Rate limit group: ``MARKET_DATA_CHART``. On ``429``, respect
+        ``Retry-After`` or ``X-RateLimit-Reset`` before retrying market data
+        chart endpoints.
 
         Args:
             symbol: Stock symbol accepted by the official API.

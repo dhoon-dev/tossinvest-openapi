@@ -115,6 +115,10 @@ behavior such as expanding environment variables before starting the MCP
 server. In Codex, start a new session after editing the config and use
 ``/mcp`` to check that the server is connected.
 
+Each MCP tool description includes the official TossInvest Rate Limits Group
+for that API. If the API returns ``429``, use ``Retry-After`` or
+``X-RateLimit-Reset`` before retrying the affected group.
+
 To register live order creation, modification, and cancellation tools, pass the
 separate ``--enable-live-orders`` opt-in flag:
 

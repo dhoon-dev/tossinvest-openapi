@@ -675,6 +675,48 @@ async def test_list_orders_tool_schema_exposes_lifecycle_status_enum() -> None:
     assert "status" not in schema.get("required", [])
 
 
+async def test_mcp_tool_descriptions_expose_rate_limit_groups() -> None:
+    pytest.importorskip("mcp.server.fastmcp")
+
+    server = create_server(
+        TossInvestMCPServerConfig("client-id", "client-secret", enable_live_orders=True)
+    )
+
+    tools = {tool.name: tool for tool in await server.list_tools()}
+    expected_groups = {
+        "list_accounts": "ACCOUNT",
+        "find_account_by_number": "ACCOUNT",
+        "get_stock": "STOCK",
+        "get_stocks": "STOCK",
+        "get_stock_warnings": "STOCK",
+        "get_orderbook": "MARKET_DATA",
+        "get_price": "MARKET_DATA",
+        "get_prices": "MARKET_DATA",
+        "get_trades": "MARKET_DATA",
+        "get_price_limit": "MARKET_DATA",
+        "get_candles": "MARKET_DATA_CHART",
+        "get_exchange_rate": "MARKET_INFO",
+        "get_kr_market_calendar": "MARKET_INFO",
+        "get_us_market_calendar": "MARKET_INFO",
+        "get_holdings": "ASSET",
+        "list_orders": "ORDER_HISTORY",
+        "get_order": "ORDER_HISTORY",
+        "get_buying_power": "ORDER_INFO",
+        "get_sellable_quantity": "ORDER_INFO",
+        "get_commissions": "ORDER_INFO",
+        "create_order": "ORDER",
+        "modify_order": "ORDER",
+        "cancel_order": "ORDER",
+    }
+
+    for tool_name, group in expected_groups.items():
+        description = tools[tool_name].description or ""
+        assert f"Rate limit group: {group}" in description
+        assert "429" in description
+        assert "Retry-After" in description
+        assert "X-RateLimit-Reset" in description
+
+
 async def test_mcp_tool_schemas_expose_official_request_enums() -> None:
     pytest.importorskip("mcp.server.fastmcp")
 

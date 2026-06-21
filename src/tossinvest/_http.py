@@ -59,6 +59,7 @@ class SyncHTTPClient:
         *,
         params: Mapping[str, object | None] | None = None,
         json: object | None = None,
+        headers: Mapping[str, str] | None = None,
         authenticated: bool = True,
         account_required: bool = False,
         account: str | int | None = None,
@@ -73,6 +74,7 @@ class SyncHTTPClient:
                 path,
                 params=params,
                 json=json,
+                headers=headers,
                 authenticated=authenticated,
                 account_required=account_required,
                 account=account,
@@ -101,20 +103,23 @@ class SyncHTTPClient:
         *,
         params: Mapping[str, object | None] | None,
         json: object | None,
+        headers: Mapping[str, str] | None,
         authenticated: bool,
         account_required: bool,
         account: str | int | None,
     ) -> httpx.Response:
-        headers = self._headers(
+        request_headers = self._headers(
             authenticated=authenticated, account_required=account_required, account=account
         )
+        if headers:
+            request_headers.update(headers)
         try:
             return self._client.request(
                 method,
                 join_url(self.config.base_url, path),
                 params=serialize_query(params),
                 json=json_body(json),
-                headers=headers,
+                headers=request_headers,
             )
         except httpx.TransportError as exc:
             raise TossInvestHTTPError(
@@ -183,6 +188,7 @@ class AsyncHTTPClient:
         *,
         params: Mapping[str, object | None] | None = None,
         json: object | None = None,
+        headers: Mapping[str, str] | None = None,
         authenticated: bool = True,
         account_required: bool = False,
         account: str | int | None = None,
@@ -197,6 +203,7 @@ class AsyncHTTPClient:
                 path,
                 params=params,
                 json=json,
+                headers=headers,
                 authenticated=authenticated,
                 account_required=account_required,
                 account=account,
@@ -225,20 +232,23 @@ class AsyncHTTPClient:
         *,
         params: Mapping[str, object | None] | None,
         json: object | None,
+        headers: Mapping[str, str] | None,
         authenticated: bool,
         account_required: bool,
         account: str | int | None,
     ) -> httpx.Response:
-        headers = await self._headers(
+        request_headers = await self._headers(
             authenticated=authenticated, account_required=account_required, account=account
         )
+        if headers:
+            request_headers.update(headers)
         try:
             return await self._client.request(
                 method,
                 join_url(self.config.base_url, path),
                 params=serialize_query(params),
                 json=json_body(json),
-                headers=headers,
+                headers=request_headers,
             )
         except httpx.TransportError as exc:
             raise TossInvestHTTPError(
