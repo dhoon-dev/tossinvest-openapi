@@ -143,6 +143,17 @@ during live tests.
   characters.
 - Wrap body lines at 72 characters or fewer. Use the body to explain the
   reason, impact, or notable verification for the change.
+- Validate commit messages with:
+
+```bash
+uv run --locked python scripts/check_commit_messages.py --message-file <path>
+```
+
+- Local checkouts should enable the shared commit hook with:
+
+```bash
+git config core.hooksPath .githooks
+```
 
 ## Implementation Guidelines
 
