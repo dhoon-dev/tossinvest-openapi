@@ -357,6 +357,13 @@ Release with the package and documentation artifacts attached. Published
 non-draft, non-prerelease runs also deploy the Sphinx HTML output to GitHub Pages
 as the latest documentation site.
 
+Before running a published release for the first time, enable GitHub Pages in the
+repository settings and set **Build and deployment** > **Source** to **GitHub
+Actions**. Draft and prerelease runs skip the Pages deployment path. The release
+workflow assumes Pages is already enabled; `actions/configure-pages` can only
+enable Pages automatically when it is given a token other than the default
+`GITHUB_TOKEN` with Pages administration permissions.
+
 Read-only live tests do not run in CI because the `live` job currently fails on
 GitHub-hosted runners. The job is kept disabled in `.github/workflows/ci.yml`
 so it is skipped for pushes, pull requests, and manual `workflow_dispatch` runs.
