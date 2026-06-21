@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 
 import pytest
+from pydantic import ValidationError
 from pytest_httpx import HTTPXMock
 
 from tossinvest import OrderCreateRequest, OrderModifyRequest, TossInvestValidationError
@@ -42,6 +43,25 @@ def test_create_order_serializes_json_body(httpx_mock: HTTPXMock) -> None:
 def test_order_request_validates_quantity_or_amount() -> None:
     with pytest.raises(ValueError, match="Exactly one"):
         OrderCreateRequest(symbol="005930", side="BUY", orderType="MARKET")
+
+
+def test_order_request_rejects_extra_fields() -> None:
+    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+        OrderCreateRequest.model_validate(
+            {
+                "symbol": "005930",
+                "side": "BUY",
+                "orderType": "LIMIT",
+                "quantity": "1",
+                "price": "70000",
+                "unexpected": "value",
+            }
+        )
+
+    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+        OrderModifyRequest.model_validate(
+            {"orderType": "LIMIT", "price": "71000", "unexpected": "value"}
+        )
 
 
 def test_order_api_requires_account_before_live_request(httpx_mock: HTTPXMock) -> None:

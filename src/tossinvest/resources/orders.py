@@ -6,8 +6,10 @@ from tossinvest._http import AsyncHTTPClient, SyncHTTPClient
 from tossinvest.models import (
     BuyingPowerResponse,
     Commission,
+    CurrencyCode,
     Order,
     OrderCreateRequest,
+    OrderListStatus,
     OrderModifyRequest,
     OrderOperationResponse,
     OrderResponse,
@@ -29,7 +31,7 @@ class OrdersResource:
     def list_orders(
         self,
         *,
-        status: str,
+        status: OrderListStatus,
         symbol: str | None = None,
         from_date: str | None = None,
         to_date: str | None = None,
@@ -182,7 +184,7 @@ class OrdersResource:
         return parse_model(OrderOperationResponse, result)
 
     def get_buying_power(
-        self, *, currency: str, account: str | int | None = None
+        self, *, currency: CurrencyCode, account: str | int | None = None
     ) -> BuyingPowerResponse:
         """Return cash buying power for the requested currency.
 
@@ -256,7 +258,7 @@ class AsyncOrdersResource:
     async def list_orders(
         self,
         *,
-        status: str,
+        status: OrderListStatus,
         symbol: str | None = None,
         from_date: str | None = None,
         to_date: str | None = None,
@@ -409,7 +411,7 @@ class AsyncOrdersResource:
         return parse_model(OrderOperationResponse, result)
 
     async def get_buying_power(
-        self, *, currency: str, account: str | int | None = None
+        self, *, currency: CurrencyCode, account: str | int | None = None
     ) -> BuyingPowerResponse:
         """Return cash buying power for the requested currency.
 

@@ -6,6 +6,7 @@ from collections.abc import Sequence
 
 from tossinvest._http import AsyncHTTPClient, SyncHTTPClient
 from tossinvest.models import (
+    CandleInterval,
     CandlePageResponse,
     OrderbookResponse,
     PriceLimitResponse,
@@ -107,7 +108,7 @@ class MarketDataResource:
         self,
         symbol: str,
         *,
-        interval: str,
+        interval: CandleInterval,
         count: int | None = None,
         before: str | None = None,
         adjusted: bool | None = None,
@@ -229,7 +230,7 @@ class AsyncMarketDataResource:
         self,
         symbol: str,
         *,
-        interval: str,
+        interval: CandleInterval,
         count: int | None = None,
         before: str | None = None,
         adjusted: bool | None = None,

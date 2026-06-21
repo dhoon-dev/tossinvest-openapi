@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import os
+from typing import cast
 
 import pytest
 
-from tossinvest import Account, TossInvestClient
+from tossinvest import Account, CurrencyCode, TossInvestClient
 
 pytestmark = [
     pytest.mark.integration,
@@ -157,5 +158,9 @@ def _live_symbol() -> str:
     return os.getenv("TOSSINVEST_LIVE_SYMBOL") or "005930"
 
 
-def _live_currency() -> str:
-    return os.getenv("TOSSINVEST_LIVE_CURRENCY") or "KRW"
+def _live_currency() -> CurrencyCode:
+    currency = os.getenv("TOSSINVEST_LIVE_CURRENCY") or "KRW"
+    if currency not in {"KRW", "USD"}:
+        msg = "TOSSINVEST_LIVE_CURRENCY must be KRW or USD."
+        raise ValueError(msg)
+    return cast(CurrencyCode, currency)

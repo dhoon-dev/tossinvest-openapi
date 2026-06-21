@@ -11,7 +11,17 @@ from pydantic import BaseModel
 
 from tossinvest._mcp.accounts import find_account_by_number as _find_account_by_number
 from tossinvest.client import TossInvestClient
-from tossinvest.models import Account, OrderCreateRequest, OrderModifyRequest
+from tossinvest.models import (
+    Account,
+    CandleInterval,
+    CurrencyCode,
+    OrderCreateRequest,
+    OrderListStatus,
+    OrderModifyRequest,
+    OrderSide,
+    OrderTimeInForce,
+    OrderType,
+)
 
 type ClientContextFactory = Callable[[], AbstractContextManager[TossInvestClient]]
 type AccountResolver = Callable[[str | int | None], str | int | None]
@@ -93,7 +103,7 @@ class TossInvestMCPTools:
         self,
         symbol: str,
         *,
-        interval: str,
+        interval: CandleInterval,
         count: int | None = None,
         before: str | None = None,
         adjusted: bool | None = None,
@@ -113,8 +123,8 @@ class TossInvestMCPTools:
     def get_exchange_rate(
         self,
         *,
-        base_currency: str,
-        quote_currency: str,
+        base_currency: CurrencyCode,
+        quote_currency: CurrencyCode,
         date_time: str | None = None,
     ) -> dict[str, object]:
         """Return an exchange rate between two supported currencies."""
@@ -150,7 +160,7 @@ class TossInvestMCPTools:
     def list_orders(
         self,
         *,
-        status: str,
+        status: OrderListStatus = "OPEN",
         symbol: str | None = None,
         from_date: str | None = None,
         to_date: str | None = None,
@@ -182,7 +192,7 @@ class TossInvestMCPTools:
     def get_buying_power(
         self,
         *,
-        currency: str,
+        currency: CurrencyCode,
         account_seq: str | int | None = None,
     ) -> dict[str, object]:
         """Return cash buying power for the requested currency."""
@@ -211,12 +221,12 @@ class TossInvestMCPTools:
         self,
         *,
         symbol: str,
-        side: str,
-        order_type: str,
+        side: OrderSide,
+        order_type: OrderType,
         quantity: str | None = None,
         order_amount: str | None = None,
         price: str | None = None,
-        time_in_force: str | None = None,
+        time_in_force: OrderTimeInForce | None = None,
         client_order_id: str | None = None,
         confirm_high_value_order: bool | None = None,
         account_seq: str | int | None = None,
@@ -243,7 +253,7 @@ class TossInvestMCPTools:
         self,
         order_id: str,
         *,
-        order_type: str,
+        order_type: OrderType,
         quantity: str | None = None,
         price: str | None = None,
         confirm_high_value_order: bool | None = None,

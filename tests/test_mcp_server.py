@@ -21,6 +21,7 @@ from tossinvest.models import (
     OrderModifyRequest,
     OrderOperationResponse,
     OrderResponse,
+    PaginatedOrderResponse,
     PriceResponse,
 )
 
@@ -29,6 +30,36 @@ from .conftest import add_api_response, add_token_response
 
 def _python_command(source: str) -> str:
     return f"{shlex.quote(sys.executable)} -c {shlex.quote(source)}"
+
+
+def _property_enum(schema: dict[str, object], property_name: str) -> list[str]:
+    prop_schema = cast(
+        dict[str, object], cast(dict[str, object], schema["properties"])[property_name]
+    )
+    enum = _schema_enum(schema, prop_schema)
+    if enum is None:
+        msg = f"{property_name} does not expose an enum."
+        raise AssertionError(msg)
+    return enum
+
+
+def _schema_enum(schema: dict[str, object], prop_schema: dict[str, object]) -> list[str] | None:
+    enum = prop_schema.get("enum")
+    if isinstance(enum, list):
+        return cast(list[str], enum)
+    ref = prop_schema.get("$ref")
+    if isinstance(ref, str):
+        defs = cast(dict[str, object], schema["$defs"])
+        return _schema_enum(schema, cast(dict[str, object], defs[ref.removeprefix("#/$defs/")]))
+    for key in ("anyOf", "oneOf"):
+        options = prop_schema.get(key)
+        if isinstance(options, list):
+            for option in options:
+                if isinstance(option, dict):
+                    nested_enum = _schema_enum(schema, cast(dict[str, object], option))
+                    if nested_enum is not None:
+                        return nested_enum
+    return None
 
 
 class _Accounts:
@@ -59,8 +90,27 @@ class _Orders:
     account: str | int | None = None
     canceled_order_id: str | None = None
     created_request: OrderCreateRequest | None = None
+    listed_status: str | None = None
     modified_order_id: str | None = None
     modified_request: OrderModifyRequest | None = None
+
+    def list_orders(
+        self,
+        *,
+        status: str = "OPEN",
+        symbol: str | None = None,
+        from_date: str | None = None,
+        to_date: str | None = None,
+        cursor: str | None = None,
+        limit: int | None = None,
+        account: str | int | None = None,
+    ) -> PaginatedOrderResponse:
+        del symbol, from_date, to_date, cursor, limit
+        self.account = account
+        self.listed_status = status
+        return PaginatedOrderResponse.model_validate(
+            {"orders": [], "nextCursor": None, "hasNext": False}
+        )
 
     def get_buying_power(
         self,
@@ -162,6 +212,17 @@ def test_account_scoped_tools_forward_account_override() -> None:
     result = tools.get_buying_power(currency="KRW", account_seq="7")
 
     assert result == {"currency": "KRW", "cashBuyingPower": "100000"}
+    assert client.orders.account == "7"
+
+
+def test_list_orders_tool_defaults_to_open_status() -> None:
+    client = _FakeClient()
+    tools = TossInvestMCPTools(cast(ClientContextFactory, lambda: _FakeClientContext(client)))
+
+    result = tools.list_orders(account_seq="7")
+
+    assert result == {"orders": [], "hasNext": False}
+    assert client.orders.listed_status == "OPEN"
     assert client.orders.account == "7"
 
 
@@ -598,6 +659,51 @@ async def test_account_scoped_tool_schema_uses_account_seq() -> None:
     assert "account" not in schema["properties"]
     assert "accountSeq" in schema["properties"]["account_seq"]["description"]
     assert "accountNo" in schema["properties"]["account_seq"]["description"]
+
+
+async def test_list_orders_tool_schema_exposes_lifecycle_status_enum() -> None:
+    pytest.importorskip("mcp.server.fastmcp")
+
+    server = create_server(TossInvestMCPServerConfig("client-id", "client-secret"))
+
+    tools = {tool.name: tool for tool in await server.list_tools()}
+    schema = tools["list_orders"].inputSchema
+    status_schema = schema["properties"]["status"]
+
+    assert status_schema["default"] == "OPEN"
+    assert _property_enum(schema, "status") == ["OPEN", "CLOSED"]
+    assert "status" not in schema.get("required", [])
+
+
+async def test_mcp_tool_schemas_expose_official_request_enums() -> None:
+    pytest.importorskip("mcp.server.fastmcp")
+
+    server = create_server(
+        TossInvestMCPServerConfig("client-id", "client-secret", enable_live_orders=True)
+    )
+
+    tools = {tool.name: tool for tool in await server.list_tools()}
+
+    assert _property_enum(tools["get_candles"].inputSchema, "interval") == ["1m", "1d"]
+    assert _property_enum(tools["get_exchange_rate"].inputSchema, "base_currency") == [
+        "KRW",
+        "USD",
+    ]
+    assert _property_enum(tools["get_exchange_rate"].inputSchema, "quote_currency") == [
+        "KRW",
+        "USD",
+    ]
+    assert _property_enum(tools["get_buying_power"].inputSchema, "currency") == ["KRW", "USD"]
+    assert _property_enum(tools["create_order"].inputSchema, "side") == ["BUY", "SELL"]
+    assert _property_enum(tools["create_order"].inputSchema, "order_type") == [
+        "LIMIT",
+        "MARKET",
+    ]
+    assert _property_enum(tools["create_order"].inputSchema, "time_in_force") == ["DAY", "CLS"]
+    assert _property_enum(tools["modify_order"].inputSchema, "order_type") == [
+        "LIMIT",
+        "MARKET",
+    ]
 
 
 async def test_create_server_registers_live_order_tools_when_enabled() -> None:

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from tossinvest._http import AsyncHTTPClient, SyncHTTPClient
 from tossinvest.models import (
+    CurrencyCode,
     ExchangeRateResponse,
     KrMarketCalendarResponse,
     UsMarketCalendarResponse,
@@ -20,8 +21,8 @@ class MarketInfoResource:
     def get_exchange_rate(
         self,
         *,
-        base_currency: str,
-        quote_currency: str,
+        base_currency: CurrencyCode,
+        quote_currency: CurrencyCode,
         date_time: str | None = None,
     ) -> ExchangeRateResponse:
         """Return an exchange rate between two supported currencies.
@@ -83,8 +84,8 @@ class AsyncMarketInfoResource:
     async def get_exchange_rate(
         self,
         *,
-        base_currency: str,
-        quote_currency: str,
+        base_currency: CurrencyCode,
+        quote_currency: CurrencyCode,
         date_time: str | None = None,
     ) -> ExchangeRateResponse:
         """Return an exchange rate between two supported currencies.

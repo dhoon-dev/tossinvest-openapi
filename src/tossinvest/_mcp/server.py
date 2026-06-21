@@ -21,6 +21,14 @@ from tossinvest.config import (
     DEFAULT_TIMEOUT,
     DEFAULT_USER_AGENT,
 )
+from tossinvest.models import (
+    CandleInterval,
+    CurrencyCode,
+    OrderListStatus,
+    OrderSide,
+    OrderTimeInForce,
+    OrderType,
+)
 
 if TYPE_CHECKING:
     from mcp.server.fastmcp import FastMCP
@@ -132,7 +140,7 @@ def _register_market_data_tools(server: FastMCP, tools: TossInvestMCPTools) -> N
     @server.tool()
     def get_candles(
         symbol: str,
-        interval: str,
+        interval: CandleInterval,
         *,
         count: int | None = None,
         before: str | None = None,
@@ -153,8 +161,8 @@ def _register_market_info_tools(server: FastMCP, tools: TossInvestMCPTools) -> N
 
     @server.tool()
     def get_exchange_rate(
-        base_currency: str,
-        quote_currency: str,
+        base_currency: CurrencyCode,
+        quote_currency: CurrencyCode,
         date_time: str | None = None,
     ) -> dict[str, object]:
         """Return an exchange rate between two supported currencies."""
@@ -188,7 +196,7 @@ def _register_account_scoped_tools(server: FastMCP, tools: TossInvestMCPTools) -
 
     @server.tool()
     def list_orders(
-        status: str,
+        status: OrderListStatus = "OPEN",
         symbol: str | None = None,
         from_date: str | None = None,
         to_date: str | None = None,
@@ -217,7 +225,7 @@ def _register_account_scoped_tools(server: FastMCP, tools: TossInvestMCPTools) -
 
     @server.tool()
     def get_buying_power(
-        currency: str,
+        currency: CurrencyCode,
         account_seq: str | None = Field(default=None, description=ACCOUNT_SEQ_DESCRIPTION),
     ) -> dict[str, object]:
         """Return cash buying power using the configured default accountSeq or an override."""
@@ -245,13 +253,13 @@ def _register_live_order_tools(server: FastMCP, tools: TossInvestMCPTools) -> No
     @server.tool()
     def create_order(
         symbol: str,
-        side: str,
-        order_type: str,
+        side: OrderSide,
+        order_type: OrderType,
         *,
         quantity: str | None = None,
         order_amount: str | None = None,
         price: str | None = None,
-        time_in_force: str | None = None,
+        time_in_force: OrderTimeInForce | None = None,
         client_order_id: str | None = None,
         confirm_high_value_order: bool | None = None,
         account_seq: str | None = Field(default=None, description=ACCOUNT_SEQ_DESCRIPTION),
@@ -273,7 +281,7 @@ def _register_live_order_tools(server: FastMCP, tools: TossInvestMCPTools) -> No
     @server.tool()
     def modify_order(
         order_id: str,
-        order_type: str,
+        order_type: OrderType,
         *,
         quantity: str | None = None,
         price: str | None = None,

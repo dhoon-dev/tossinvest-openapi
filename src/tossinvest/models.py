@@ -6,11 +6,24 @@ from typing import Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+type CandleInterval = Literal["1m", "1d"]
+type CurrencyCode = Literal["KRW", "USD"]
+type OrderListStatus = Literal["OPEN", "CLOSED"]
+type OrderSide = Literal["BUY", "SELL"]
+type OrderTimeInForce = Literal["DAY", "CLS"]
+type OrderType = Literal["LIMIT", "MARKET"]
+
 
 class TossInvestModel(BaseModel):
     """Base model that preserves additive API fields and official aliases."""
 
     model_config = ConfigDict(extra="allow", populate_by_name=True)
+
+
+class TossInvestRequestModel(BaseModel):
+    """Base model that rejects unsupported request fields."""
+
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
 
 class ApiError(TossInvestModel):
@@ -291,7 +304,7 @@ class HoldingsOverview(TossInvestModel):
     items: list[HoldingsItem]
 
 
-class OrderCreateRequest(TossInvestModel):
+class OrderCreateRequest(TossInvestRequestModel):
     """Request body for creating a live order.
 
     Exactly one of ``quantity`` or ``order_amount`` must be provided. Limit
@@ -306,9 +319,9 @@ class OrderCreateRequest(TossInvestModel):
 
     client_order_id: str | None = Field(default=None, alias="clientOrderId")
     symbol: str
-    side: Literal["BUY", "SELL"]
-    order_type: Literal["LIMIT", "MARKET"] = Field(alias="orderType")
-    time_in_force: Literal["DAY", "CLS"] | None = Field(default=None, alias="timeInForce")
+    side: OrderSide
+    order_type: OrderType = Field(alias="orderType")
+    time_in_force: OrderTimeInForce | None = Field(default=None, alias="timeInForce")
     quantity: str | None = None
     order_amount: str | None = Field(default=None, alias="orderAmount")
     price: str | None = None
@@ -334,7 +347,7 @@ class OrderCreateRequest(TossInvestModel):
         return self
 
 
-class OrderModifyRequest(TossInvestModel):
+class OrderModifyRequest(TossInvestRequestModel):
     """Request body for modifying an existing order.
 
     The official API validates market-specific rules such as whether quantity
@@ -342,7 +355,7 @@ class OrderModifyRequest(TossInvestModel):
     official field names when serializing this model.
     """
 
-    order_type: Literal["LIMIT", "MARKET"] = Field(alias="orderType")
+    order_type: OrderType = Field(alias="orderType")
     quantity: str | None = None
     price: str | None = None
     confirm_high_value_order: bool | None = Field(default=None, alias="confirmHighValueOrder")
